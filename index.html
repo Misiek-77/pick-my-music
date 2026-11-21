@@ -1,0 +1,1585 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pick My Music</title>
+<meta name="description" content="Pick My Music — imprezowa gra muzyczna: posłuchaj fragmentu, zgadnij rok wydania i ułóż swoją oś czasu.">
+<meta name="theme-color" content="#14121f">
+<meta property="og:title" content="Pick My Music">
+<meta property="og:description" content="Posłuchaj. Zgadnij, kiedy to wyszło. Ułóż swoją oś czasu.">
+<meta property="og:image" content="grafiki/baner.jpg">
+<link rel="apple-touch-icon" href="grafiki/logo.jpg">
+<link rel="icon" href="grafiki/logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14121f;
+    --panel: #1e1b2e;
+    --panel-2: #2a2640;
+    --line: #3a3556;
+    --text: #f3efe6;
+    --muted: #a9a3bf;
+    --accent: #ff7a59;
+    --accent-2: #ffc857;
+    --ok: #4fd1a5;
+    --bad: #ff5d73;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text);
+    background: linear-gradient(rgba(20,18,31,.78), rgba(20,18,31,.94)), url('grafiki/tlo.jpg') center top / cover fixed, var(--bg);
+    font-family: Inter, system-ui, sans-serif; font-size: 16px; line-height: 1.5;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 60px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+  h1 { font-family: Fraunces, serif; font-weight: 700; font-size: 34px; margin: 0; letter-spacing: -0.5px; display: flex; align-items: center; gap: 12px; }
+  h1 span { color: var(--accent); }
+  h2 { font-family: Fraunces, serif; font-weight: 500; font-size: 22px; margin: 0 0 12px; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; font-weight: 500; }
+  input, select, textarea {
+    width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; font: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  textarea { resize: vertical; min-height: 84px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+  button {
+    font: inherit; font-weight: 600; border: 0; border-radius: 999px; padding: 12px 22px;
+    background: var(--accent); color: #1a0f0a; cursor: pointer; transition: transform .1s, opacity .2s;
+  }
+  button { touch-action: manipulation; }
+  button:hover { transform: translateY(-1px); }
+  button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .err { color: var(--bad); font-size: 14px; margin-top: 10px; min-height: 1em; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 14px; margin-top: 16px; }
+
+  .scores { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 14px; }
+  .chip.active { border-color: var(--accent); color: var(--accent); }
+  .chip b { font-weight: 600; margin-left: 6px; }
+
+  .stage { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: center; }
+  @media (max-width: 640px) { .stage { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+  .disc-btn { position: relative; width: 200px; height: 200px; padding: 0; border-radius: 50%; background: none; }
+  .disc {
+    width: 100%; height: 100%; border-radius: 50%;
+    background: repeating-radial-gradient(circle, #111 0 2px, #1d1d1d 2px 4px);
+    border: 2px solid #000; display: grid; place-items: center; overflow: hidden;
+  }
+  .disc .label {
+    width: 76px; height: 76px; border-radius: 50%; background: var(--accent);
+    display: grid; place-items: center; color: #1a0f0a; font-weight: 700; font-size: 26px;
+    background-size: cover; background-position: center;
+  }
+  .disc.spin { animation: spin 2.2s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .disc.spin { animation: none; } }
+  .ring { position: absolute; inset: -8px; pointer-events: none; }
+  .ring circle { fill: none; stroke-width: 4; }
+  .who { font-family: Fraunces, serif; font-size: 26px; margin: 0 0 4px; }
+  .status { color: var(--muted); margin: 0 0 14px; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  @media (max-width: 640px) { .actions { justify-content: center; } }
+
+  .result { border-radius: var(--radius); padding: 14px 16px; margin-top: 14px; }
+  .result.ok { background: rgba(79,209,165,.12); border: 1px solid var(--ok); }
+  .result.bad { background: rgba(255,93,115,.12); border: 1px solid var(--bad); }
+  .result .song { font-weight: 600; }
+
+  .timeline-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .timeline { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 8px 2px 14px; scroll-snap-type: x proximity; }
+  .card {
+    flex: 0 0 120px; min-height: 150px; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between;
+    scroll-snap-align: center;
+  }
+  .card .year { font-family: Fraunces, serif; font-size: 30px; font-weight: 700; color: var(--accent-2); line-height: 1; }
+  .card .t { font-size: 13px; font-weight: 600; margin-top: 8px; }
+  .card .a { font-size: 12px; color: var(--muted); }
+  .card.new { border-color: var(--ok); box-shadow: 0 0 0 2px rgba(79,209,165,.35); }
+  .slot {
+    flex: 0 0 44px; margin: 0 4px; border-radius: 10px; border: 2px dashed var(--line); background: transparent;
+    color: var(--muted); padding: 0; font-size: 22px; display: grid; place-items: center;
+  }
+  .slot:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); transform: none; }
+  .slot.chosen { border-style: solid; border-color: var(--accent); background: rgba(255,122,89,.15); color: var(--accent); }
+  .slot:disabled { opacity: .25; }
+
+  .loading { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+  .spinner { width: 20px; height: 20px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  .bar { height: 10px; background: var(--panel-2); border-radius: 999px; overflow: hidden; margin-top: 4px; }
+  .bar div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 999px; transition: width .4s; }
+  .stages { list-style: none; padding: 0; margin: 18px 0 16px; display: grid; gap: 12px; }
+  .stages li { display: flex; gap: 12px; align-items: flex-start; color: var(--muted); }
+  .stages li b { display: block; font-weight: 500; }
+  .stages li small { display: block; font-size: 13px; }
+  .stages .ico { flex: 0 0 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+  .stages li[data-st="active"] { color: var(--text); }
+  .stages li[data-st="active"] .ico { border-color: var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+  .stages li[data-st="done"] .ico { background: var(--ok); border-color: var(--ok); color: #0b2a20; }
+  .stages li[data-st="done"] { color: var(--text); }
+  .stages li[data-st="warn"] { color: var(--accent-2); }
+  .stages li[data-st="warn"] .ico { border-color: var(--accent-2); color: var(--accent-2); }
+  .hidden { display: none !important; }
+  .winner { text-align: center; padding: 32px 20px 40px; }
+  .winner .trophy { width: 240px; max-width: 70%; height: auto; border-radius: 20px; display: block; margin: 0 auto 12px; }
+  h1 .logo { width: 52px; height: 52px; border-radius: 12px; flex: none; }
+  .decks { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+  .deck {
+    display: flex; flex-direction: column; align-items: stretch; text-align: left; gap: 6px; padding: 8px;
+    background: var(--panel-2); color: var(--text); border: 2px solid transparent; border-radius: 14px; font-weight: 500;
+  }
+  .deck:hover { transform: translateY(-2px); border-color: var(--line); }
+  .deck[aria-checked="true"] { border-color: var(--accent); background: rgba(255,122,89,.12); }
+  .deck img, .deck .ai { width: 100%; height: auto; aspect-ratio: 1; border-radius: 10px; display: block; object-fit: cover; }
+  .deck .ai { display: grid; place-items: center; background: var(--bg); font-size: 44px; color: var(--accent-2); }
+  .deck b { font-size: 13px; font-weight: 600; line-height: 1.25; }
+  .deck small { font-size: 12px; color: var(--muted); font-weight: 400; }
+  /* Telefon: zwarty układ, żeby oś czasu mieściła się na pierwszym ekranie */
+  @media (max-width: 640px) {
+    .wrap { padding-top: 16px; }
+    header { margin-bottom: 14px; }
+    body.ingame header .sub { display: none; }
+    .panel { padding: 16px; }
+    .stage { gap: 12px; }
+    .disc-btn { width: 150px; height: 150px; }
+    .disc .label { width: 58px; height: 58px; font-size: 20px; }
+    .who { font-size: 22px; }
+    .status { font-size: 14px; margin-bottom: 10px; }
+    .actions { flex-wrap: nowrap; width: 100%; }
+    .actions button { flex: 1; padding: 12px 12px; }
+    .card { flex-basis: 104px; min-height: 128px; }
+    .card .year { font-size: 26px; }
+    .decks { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .deck { padding: 6px; gap: 4px; }
+    .deck b { font-size: 12px; }
+    .deck small { font-size: 11px; }
+  }
+  /* Telewizor / duży ekran: powiększ całą grę, żeby była czytelna z kanapy */
+  /* (zoom dobrany tak, żeby cały ekran gry mieścił się bez przewijania: ~730 px treści × zoom ≤ wysokość) */
+  @media (min-width: 1600px) and (min-height: 800px) {
+    .wrap { zoom: 1.45; padding: 12px 16px 16px; }
+    header { margin-bottom: 12px; }
+    .panel { margin-bottom: 12px; }
+  }
+  @media (min-width: 2600px) and (min-height: 1400px) { .wrap { zoom: 2.9; } }
+  /* Nawigacja pilotem / klawiaturą: wyraźnie widać, który przycisk jest wybrany */
+  button:focus-visible, .deck:focus-visible, .slot:focus-visible { outline: 4px solid var(--accent-2); outline-offset: 3px; }
+  .hero { display: block; width: 100%; max-width: 640px; height: auto; margin: 0 auto 10px; border-radius: 18px; border: 1px solid var(--line); }
+  .tagline { text-align: center; color: var(--muted); margin: 0 0 16px; }
+  body.onsetup header { display: none; }
+  .winner .big { font-family: Fraunces, serif; font-size: 40px; margin: 8px 0; }
+</style>
+</head>
+<body class="onsetup">
+<div class="wrap">
+  <header>
+    <h1><img class="logo" src="grafiki/logo.jpg" alt="" width="52" height="52">Pick My&nbsp;<span>Music</span></h1>
+    <div class="sub">Posłuchaj. Zgadnij, kiedy to wyszło. Ułóż swoją oś czasu.</div>
+  </header>
+
+  <!-- USTAWIENIA -->
+  <section id="setup">
+    <img class="hero" src="grafiki/baner.jpg" alt="Pick My Music" width="1600" height="893">
+    <p class="tagline">Posłuchaj. Zgadnij, kiedy to wyszło. Ułóż swoją oś czasu.</p>
+    <div class="panel">
+      <h2>Nowa gra</h2>
+      <label for="players">Gracze (jeden na linię)</label>
+      <textarea id="players">Ania
+Bartek</textarea>
+      <label id="deckLabel">Talia</label>
+      <div class="decks" id="deckTiles" role="radiogroup" aria-labelledby="deckLabel"></div>
+      <div class="hint" id="deckInfo"></div>
+      <div class="row">
+        <div>
+          <label for="target">Ile kart do wygranej</label>
+          <select id="target">
+            <option value="5">5 (szybka gra)</option>
+            <option value="7">7</option>
+            <option value="10" selected>10 (pełna gra)</option>
+          </select>
+        </div>
+        <div>
+          <select id="source" class="hidden" aria-hidden="true" tabindex="-1">
+            <optgroup label="Gotowe talie (bez klucza)" id="deckOptions"></optgroup>
+            <optgroup label="Własny motyw">
+              <option value="gemini">Gemini wygeneruje talię (wymaga klucza)</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <div id="geminiBox" class="hidden">
+        <label for="theme">Motyw talii</label>
+        <input id="theme" placeholder="np. polskie hity lat 80 i 90, rock 1965–1995, disco" value="polskie i zagraniczne hity 1970–2020">
+        <div class="row">
+          <div>
+            <label for="apiKey">Klucz Gemini API</label>
+            <input id="apiKey" type="password" autocomplete="off" placeholder="AIza…">
+            <div class="hint">Klucz zostaje tylko w tej karcie przeglądarki. Weź go z aistudio.google.com.</div>
+          </div>
+          <div>
+            <label for="model">Model</label>
+            <input id="model" value="gemini-3.8-flash">
+            <div class="hint">Możesz wpisać nowszy model, jeśli masz dostęp.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="err" id="setupErr"></div>
+      <div class="actions" style="margin-top:16px">
+        <button id="startBtn">Zaczynamy</button>
+      </div>
+      <details>
+        <summary>Zasady</summary>
+        <p class="sub">Każdy gracz zaczyna z jedną odkrytą kartą. W swojej turze słuchasz fragmentu piosenki i wybierasz miejsce na swojej osi czasu: przed, po albo między kartami, które już masz. Trafisz — karta zostaje u ciebie. Pomylisz się — przepada. Wygrywa ten, kto pierwszy zbierze ustaloną liczbę kart.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ŁADOWANIE -->
+  <section id="loadingView" class="hidden">
+    <div class="panel">
+      <h2>Tworzę talię</h2>
+      <div class="bar" role="progressbar" aria-label="Postęp tworzenia talii"><div id="barFill"></div></div>
+      <div class="sub" style="text-align:right;margin-top:4px"><span id="barPct">0%</span> piosenek</div>
+      <ol class="stages" id="stages"></ol>
+      <div class="actions"><button class="ghost" id="cancelGenBtn">Anuluj</button></div>
+    </div>
+  </section>
+
+  <!-- GRA -->
+  <section id="game" class="hidden">
+    <div class="scores" id="scores"></div>
+
+    <div class="panel">
+      <div class="stage">
+        <button class="disc-btn" id="playBtn" aria-label="Odtwórz lub zatrzymaj utwór">
+          <svg class="ring" viewBox="0 0 216 216" aria-hidden="true">
+            <circle cx="108" cy="108" r="104" stroke="#3a3556"/>
+            <circle id="ringFg" cx="108" cy="108" r="104" stroke="#ff7a59" stroke-dasharray="653.45" stroke-dashoffset="653.45" transform="rotate(-90 108 108)" stroke-linecap="round"/>
+          </svg>
+          <div class="disc" id="disc"><div class="label" id="discLabel">?</div></div>
+        </button>
+        <div>
+          <p class="who" id="who"></p>
+          <p class="status" id="status"></p>
+          <div class="actions">
+            <button id="confirmBtn" disabled>Zatwierdź miejsce</button>
+            <button class="ghost" id="skipBtn">Pomiń utwór</button>
+            <button id="nextBtn" class="hidden">Następny gracz</button>
+          </div>
+          <div id="result"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="timeline-head">
+        <h2 id="tlTitle">Oś czasu</h2>
+        <span class="sub" id="tlHint">Kliknij szczelinę, w którą pasuje utwór.</span>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+    <div class="actions"><button class="ghost" id="quitBtn">Zakończ grę</button></div>
+  </section>
+
+  <!-- KONIEC -->
+  <section id="endView" class="hidden">
+    <div class="panel winner">
+      <img class="trophy" src="grafiki/zwyciezca.jpg" alt="" width="240" height="240">
+      <div class="sub">Koniec gry</div>
+      <div class="big" id="winnerText"></div>
+      <div class="sub" id="winnerSub"></div>
+      <div class="actions" style="justify-content:center;margin-top:20px"><button id="againBtn">Zagraj jeszcze raz</button></div>
+    </div>
+  </section>
+</div>
+
+<script>
+// Gotowe talie. Rok = pierwsze wydanie utworu (singiel lub album, co było wcześniej).
+// Format wiersza: Tytuł | Wykonawca | Rok
+const DECK_SRC = {
+  mix: ['Mix: wszystkie talie razem', `
+Jailhouse Rock|Elvis Presley|1957
+Johnny B. Goode|Chuck Berry|1958
+Stand by Me|Ben E. King|1961
+(I Can't Get No) Satisfaction|The Rolling Stones|1965
+Like a Rolling Stone|Bob Dylan|1965
+Respect|Aretha Franklin|1967
+Hey Jude|The Beatles|1968
+Mrs. Robinson|Simon & Garfunkel|1968
+Bohemian Rhapsody|Queen|1975
+Dancing Queen|ABBA|1976
+Stayin' Alive|Bee Gees|1977
+I Will Survive|Gloria Gaynor|1978
+Sultans of Swing|Dire Straits|1978
+Eye of the Tiger|Survivor|1982
+Africa|Toto|1982
+Billie Jean|Michael Jackson|1982
+Girls Just Want to Have Fun|Cyndi Lauper|1983
+Purple Rain|Prince|1984
+Take On Me|a-ha|1985
+Running Up That Hill|Kate Bush|1985
+Livin' on a Prayer|Bon Jovi|1986
+I Wanna Dance with Somebody|Whitney Houston|1987
+Sweet Child O' Mine|Guns N' Roses|1987
+Like a Prayer|Madonna|1989
+The Best|Tina Turner|1989
+Smells Like Teen Spirit|Nirvana|1991
+Wonderwall|Oasis|1995
+Wannabe|Spice Girls|1996
+...Baby One More Time|Britney Spears|1998
+I Want It That Way|Backstreet Boys|1999
+Lose Yourself|Eminem|2002
+Crazy in Love|Beyoncé|2003
+Mr. Brightside|The Killers|2003
+Hips Don't Lie|Shakira|2006
+Rehab|Amy Winehouse|2006
+Umbrella|Rihanna|2007
+Viva la Vida|Coldplay|2008
+Poker Face|Lady Gaga|2008
+Rolling in the Deep|Adele|2010
+Somebody That I Used to Know|Gotye|2011
+Get Lucky|Daft Punk|2013
+Happy|Pharrell Williams|2013
+Uptown Funk|Mark Ronson|2014
+Shape of You|Ed Sheeran|2017
+Despacito|Luis Fonsi|2017
+bad guy|Billie Eilish|2019
+Blinding Lights|The Weeknd|2019
+Levitating|Dua Lipa|2020
+drivers license|Olivia Rodrigo|2021
+As It Was|Harry Styles|2022`],
+  pl: ['Polskie hity', `
+Dziwny jest ten świat|Czesław Niemen|1967
+Tyle słońca w całym mieście|Anna Jantar|1974
+Chcemy być sobą|Perfect|1981
+Mniej niż zero|Lady Pank|1983
+Przeżyj to sam|Lombard|1983
+Teksański|Hey|1993
+To nie ja!|Edyta Górniak|1994
+King|T.Love|1997
+Długość dźwięku samotności|Myslovitz|1999
+Prawy do lewego|Kayah & Bregović|1999
+Czerwone korale|Brathanki|2000
+Deszcz na betonie|Taco Hemingway|2016
+Bubbletea|Quebonafide|2020
+Szampan|sanah|2020
+Parostatek|Krzysztof Krawczyk|1976
+Nie pytaj o Polskę|Obywatel G.C.|1988
+Dziewczyna szamana|Justyna Steczkowska|1996
+Dumka na dwa serca|Edyta Górniak|1999
+Jestem Bogiem|Paktofonika|2000
+Ona tańczy dla mnie|Weekend|2012
+Trofea|Dawid Podsiadło|2018
+Pastempomat|Dawid Podsiadło|2015
+Małomiasteczkowy|Dawid Podsiadło|2018`],
+  s60: ['Złote lata 60. i 70.', `
+Stand by Me|Ben E. King|1961
+Twist and Shout|The Beatles|1963
+I Want to Hold Your Hand|The Beatles|1963
+My Girl|The Temptations|1964
+The House of the Rising Sun|The Animals|1964
+Yesterday|The Beatles|1965
+Good Vibrations|The Beach Boys|1966
+Respect|Aretha Franklin|1967
+What a Wonderful World|Louis Armstrong|1967
+Hey Jude|The Beatles|1968
+Sweet Caroline|Neil Diamond|1969
+Let It Be|The Beatles|1970
+Bridge over Troubled Water|Simon & Garfunkel|1970
+Imagine|John Lennon|1971
+American Pie|Don McLean|1971
+Let's Stay Together|Al Green|1971
+Superstition|Stevie Wonder|1972
+Waterloo|ABBA|1974
+Kung Fu Fighting|Carl Douglas|1974
+Mamma Mia|ABBA|1975
+Bohemian Rhapsody|Queen|1975
+Dancing Queen|ABBA|1976
+Daddy Cool|Boney M.|1976
+Stayin' Alive|Bee Gees|1977
+Night Fever|Bee Gees|1977
+I Feel Love|Donna Summer|1977
+Le Freak|Chic|1978
+I Will Survive|Gloria Gaynor|1978
+Y.M.C.A.|Village People|1978
+September|Earth, Wind & Fire|1978
+Rasputin|Boney M.|1978
+Hot Stuff|Donna Summer|1979
+Don't Stop 'Til You Get Enough|Michael Jackson|1979
+Can't Help Falling in Love|Elvis Presley|1961
+Be My Baby|The Ronettes|1963
+Oh, Pretty Woman|Roy Orbison|1964
+You've Lost That Lovin' Feelin'|The Righteous Brothers|1964
+Help!|The Beatles|1965
+My Generation|The Who|1965
+California Dreamin'|The Mamas & The Papas|1965
+Unchained Melody|The Righteous Brothers|1965
+These Boots Are Made for Walkin'|Nancy Sinatra|1966
+Strangers in the Night|Frank Sinatra|1966
+Wild Thing|The Troggs|1966
+Light My Fire|The Doors|1967
+Ain't No Mountain High Enough|Marvin Gaye|1967
+Brown Eyed Girl|Van Morrison|1967
+White Rabbit|Jefferson Airplane|1967
+(Sittin' On) The Dock of the Bay|Otis Redding|1968
+Here Comes the Sun|The Beatles|1969
+Space Oddity|David Bowie|1969
+Proud Mary|Creedence Clearwater Revival|1969
+Bad Moon Rising|Creedence Clearwater Revival|1969
+Lola|The Kinks|1970
+Your Song|Elton John|1970
+What's Going On|Marvin Gaye|1971
+Ain't No Sunshine|Bill Withers|1971
+Get It On|T. Rex|1971
+Lean on Me|Bill Withers|1972
+Rocket Man|Elton John|1972
+Heart of Gold|Neil Young|1972
+Crocodile Rock|Elton John|1972
+Killing Me Softly with His Song|Roberta Flack|1973
+Piano Man|Billy Joel|1973
+Jolene|Dolly Parton|1973
+Let's Get It On|Marvin Gaye|1973
+Lady Marmalade|Labelle|1974
+Sunny|Boney M.|1976
+Car Wash|Rose Royce|1976
+Don't Go Breaking My Heart|Elton John|1976
+Go Your Own Way|Fleetwood Mac|1976
+Dreams|Fleetwood Mac|1977
+We Are the Champions|Queen|1977
+How Deep Is Your Love|Bee Gees|1977
+Ma Baker|Boney M.|1977
+Rivers of Babylon|Boney M.|1978
+You're the One That I Want|John Travolta|1978
+Good Times|Chic|1979
+Ring My Bell|Anita Ward|1979
+Video Killed the Radio Star|The Buggles|1979
+Gimme! Gimme! Gimme! (A Man After Midnight)|ABBA|1979
+Chiquitita|ABBA|1979`],
+  s80: ['Lata 80.', `
+Another One Bites the Dust|Queen|1980
+Call Me|Blondie|1980
+Don't Stop Believin'|Journey|1981
+Tainted Love|Soft Cell|1981
+Physical|Olivia Newton-John|1981
+Under Pressure|Queen & David Bowie|1981
+Don't You Want Me|The Human League|1981
+Super Freak|Rick James|1981
+Eye of the Tiger|Survivor|1982
+Africa|Toto|1982
+Hungry Like the Wolf|Duran Duran|1982
+Rock the Casbah|The Clash|1982
+Billie Jean|Michael Jackson|1982
+Sweet Dreams (Are Made of This)|Eurythmics|1983
+Every Breath You Take|The Police|1983
+Total Eclipse of the Heart|Bonnie Tyler|1983
+Girls Just Want to Have Fun|Cyndi Lauper|1983
+Let's Dance|David Bowie|1983
+Karma Chameleon|Culture Club|1983
+Uptown Girl|Billy Joel|1983
+Relax|Frankie Goes to Hollywood|1983
+Like a Virgin|Madonna|1984
+Wake Me Up Before You Go-Go|Wham!|1984
+Careless Whisper|George Michael|1984
+Footloose|Kenny Loggins|1984
+Ghostbusters|Ray Parker Jr.|1984
+Smalltown Boy|Bronski Beat|1984
+Purple Rain|Prince|1984
+Take On Me|a-ha|1985
+Money for Nothing|Dire Straits|1985
+Don't You (Forget About Me)|Simple Minds|1985
+The Power of Love|Huey Lewis & The News|1985
+Running Up That Hill|Kate Bush|1985
+The Final Countdown|Europe|1986
+Livin' on a Prayer|Bon Jovi|1986
+Walk Like an Egyptian|The Bangles|1986
+Kiss|Prince|1986
+Venus|Bananarama|1986
+Never Gonna Give You Up|Rick Astley|1987
+With or Without You|U2|1987
+Faith|George Michael|1987
+Heaven Is a Place on Earth|Belinda Carlisle|1987
+Need You Tonight|INXS|1987
+Bad|Michael Jackson|1987
+Don't Worry, Be Happy|Bobby McFerrin|1988
+Fast Car|Tracy Chapman|1988
+Like a Prayer|Madonna|1989
+Celebration|Kool & The Gang|1980
+Upside Down|Diana Ross|1980
+9 to 5|Dolly Parton|1980
+Bette Davis Eyes|Kim Carnes|1981
+Jessie's Girl|Rick Springfield|1981
+Centerfold|The J. Geils Band|1981
+Maneater|Daryl Hall & John Oates|1982
+Come On Eileen|Dexys Midnight Runners|1982
+Gloria|Laura Branigan|1982
+Flashdance... What a Feeling|Irene Cara|1983
+Maniac|Michael Sembello|1983
+Owner of a Lonely Heart|Yes|1983
+Time After Time|Cyndi Lauper|1983
+When Doves Cry|Prince|1984
+Dancing in the Dark|Bruce Springsteen|1984
+Born in the U.S.A.|Bruce Springsteen|1984
+I Just Called to Say I Love You|Stevie Wonder|1984
+Do They Know It's Christmas?|Band Aid|1984
+Shout|Tears for Fears|1984
+You're My Heart, You're My Soul|Modern Talking|1984
+Holding Out for a Hero|Bonnie Tyler|1984
+Axel F|Harold Faltermeyer|1984
+Everybody Wants to Rule the World|Tears for Fears|1985
+Cheri Cheri Lady|Modern Talking|1985
+Addicted to Love|Robert Palmer|1985
+Brother Louie|Modern Talking|1986
+Papa Don't Preach|Madonna|1986
+La Isla Bonita|Madonna|1986
+Take My Breath Away|Berlin|1986
+Danger Zone|Kenny Loggins|1986
+Sledgehammer|Peter Gabriel|1986
+Don't Dream It's Over|Crowded House|1986
+I Still Haven't Found What I'm Looking For|U2|1987
+The Way You Make Me Feel|Michael Jackson|1987
+Man in the Mirror|Michael Jackson|1987
+Smooth Criminal|Michael Jackson|1987
+Orinoco Flow|Enya|1988
+Every Rose Has Its Thorn|Poison|1988
+Eternal Flame|The Bangles|1988
+Listen to Your Heart|Roxette|1988
+The Look|Roxette|1988
+Lambada|Kaoma|1989
+Pump Up the Jam|Technotronic|1989
+Another Day in Paradise|Phil Collins|1989`],
+  s90: ['Lata 90.', `
+Vogue|Madonna|1990
+Nothing Compares 2 U|Sinéad O'Connor|1990
+Losing My Religion|R.E.M.|1991
+Smells Like Teen Spirit|Nirvana|1991
+Black or White|Michael Jackson|1991
+Enter Sandman|Metallica|1991
+Under the Bridge|Red Hot Chili Peppers|1991
+I Will Always Love You|Whitney Houston|1992
+Creep|Radiohead|1992
+Rhythm Is a Dancer|Snap!|1992
+Jump|Kris Kross|1992
+Mr. Vain|Culture Beat|1993
+The Rhythm of the Night|Corona|1993
+Zombie|The Cranberries|1994
+Basket Case|Green Day|1994
+Kiss from a Rose|Seal|1994
+Scatman (Ski-Ba-Bop-Ba-Dop-Bop)|Scatman John|1994
+Waterfalls|TLC|1994
+Gangsta's Paradise|Coolio|1995
+Wonderwall|Oasis|1995
+Ironic|Alanis Morissette|1995
+Common People|Pulp|1995
+Children|Robert Miles|1995
+Insomnia|Faithless|1995
+Wannabe|Spice Girls|1996
+Killing Me Softly with His Song|Fugees|1996
+No Diggity|Blackstreet|1996
+Torn|Natalie Imbruglia|1997
+Barbie Girl|Aqua|1997
+Bitter Sweet Symphony|The Verve|1997
+My Heart Will Go On|Céline Dion|1997
+Song 2|Blur|1997
+Everybody (Backstreet's Back)|Backstreet Boys|1997
+Believe|Cher|1998
+...Baby One More Time|Britney Spears|1998
+Iris|Goo Goo Dolls|1998
+Blue (Da Ba Dee)|Eiffel 65|1998
+Livin' la Vida Loca|Ricky Martin|1999
+I Want It That Way|Backstreet Boys|1999
+Smooth|Santana|1999
+All Star|Smash Mouth|1999
+U Can't Touch This|MC Hammer|1990
+Unbelievable|EMF|1990
+Sadeness (Part I)|Enigma|1990
+Wind of Change|Scorpions|1990
+Gonna Make You Sweat (Everybody Dance Now)|C+C Music Factory|1990
+Joyride|Roxette|1991
+(Everything I Do) I Do It for You|Bryan Adams|1991
+November Rain|Guns N' Roses|1991
+Come As You Are|Nirvana|1991
+Achy Breaky Heart|Billy Ray Cyrus|1992
+All That She Wants|Ace of Base|1992
+Informer|Snow|1992
+Baby Got Back|Sir Mix-a-Lot|1992
+Jump Around|House of Pain|1992
+The Sign|Ace of Base|1993
+No Limit|2 Unlimited|1993
+Loser|Beck|1993
+Linger|The Cranberries|1993
+Cotton Eye Joe|Rednex|1994
+California Love|2Pac|1995
+You Oughta Know|Alanis Morissette|1995
+Don't Speak|No Doubt|1995
+Freed from Desire|Gala|1996
+Coco Jamboo|Mr. President|1996
+Say You'll Be There|Spice Girls|1996
+2 Become 1|Spice Girls|1996
+Return of the Mack|Mark Morrison|1996
+Quit Playing Games (With My Heart)|Backstreet Boys|1996
+Spice Up Your Life|Spice Girls|1997
+Around the World|Daft Punk|1997
+Truly Madly Deeply|Savage Garden|1997
+Gettin' Jiggy wit It|Will Smith|1997
+Men in Black|Will Smith|1997
+Tubthumping|Chumbawamba|1997
+Kiss Me|Sixpence None the Richer|1997
+Praise You|Fatboy Slim|1998
+You Get What You Give|New Radicals|1998
+Ray of Light|Madonna|1998
+Frozen|Madonna|1998
+Genie in a Bottle|Christina Aguilera|1999
+Mambo No. 5|Lou Bega|1999
+Sandstorm|Darude|1999
+No Scrubs|TLC|1999`],
+  s00: ['Lata 2000.', `
+Oops!... I Did It Again|Britney Spears|2000
+It Wasn't Me|Shaggy|2000
+In the End|Linkin Park|2000
+Yellow|Coldplay|2000
+Beautiful Day|U2|2000
+Can't Get You Out of My Head|Kylie Minogue|2001
+Lose Yourself|Eminem|2002
+Without Me|Eminem|2002
+Complicated|Avril Lavigne|2002
+Clocks|Coldplay|2002
+Hey Ya!|OutKast|2003
+Seven Nation Army|The White Stripes|2003
+Crazy in Love|Beyoncé|2003
+In da Club|50 Cent|2003
+Toxic|Britney Spears|2003
+Mr. Brightside|The Killers|2003
+Dragostea Din Tei|O-Zone|2003
+Numb|Linkin Park|2003
+Yeah!|Usher|2004
+Boulevard of Broken Dreams|Green Day|2004
+Since U Been Gone|Kelly Clarkson|2004
+Feel Good Inc.|Gorillaz|2005
+Hips Don't Lie|Shakira|2006
+Crazy|Gnarls Barkley|2006
+SexyBack|Justin Timberlake|2006
+Rehab|Amy Winehouse|2006
+Chasing Cars|Snow Patrol|2006
+Umbrella|Rihanna|2007
+Viva la Vida|Coldplay|2008
+Poker Face|Lady Gaga|2008
+I Kissed a Girl|Katy Perry|2008
+Single Ladies (Put a Ring on It)|Beyoncé|2008
+Use Somebody|Kings of Leon|2008
+I Gotta Feeling|The Black Eyed Peas|2009
+Bad Romance|Lady Gaga|2009
+Empire State of Mind|Jay-Z|2009
+Party in the U.S.A.|Miley Cyrus|2009
+Fireflies|Owl City|2009
+Bye Bye Bye|*NSYNC|2000
+Stan|Eminem|2000
+The Real Slim Shady|Eminem|2000
+Whenever, Wherever|Shakira|2001
+Get the Party Started|P!nk|2001
+How You Remind Me|Nickelback|2001
+Chop Suey!|System of a Down|2001
+Hero|Enrique Iglesias|2001
+Family Affair|Mary J. Blige|2001
+Hot in Herre|Nelly|2002
+Cry Me a River|Justin Timberlake|2002
+A Thousand Miles|Vanessa Carlton|2002
+The Ketchup Song (Aserejé)|Las Ketchup|2002
+Dilemma|Nelly|2002
+Beautiful|Christina Aguilera|2002
+Where Is the Love?|The Black Eyed Peas|2003
+Bring Me to Life|Evanescence|2003
+Somewhere Only We Know|Keane|2004
+Take Me Out|Franz Ferdinand|2004
+You're Beautiful|James Blunt|2004
+Somebody Told Me|The Killers|2004
+Pon de Replay|Rihanna|2005
+Hollaback Girl|Gwen Stefani|2004
+Gold Digger|Kanye West|2005
+Bad Day|Daniel Powter|2005
+Hung Up|Madonna|2005
+Fix You|Coldplay|2005
+Promiscuous|Nelly Furtado|2006
+Maneater|Nelly Furtado|2006
+Irreplaceable|Beyoncé|2006
+Grace Kelly|MIKA|2007
+Girlfriend|Avril Lavigne|2007
+Stronger|Kanye West|2007
+Bleeding Love|Leona Lewis|2007
+Low|Flo Rida|2007
+Paper Planes|M.I.A.|2007
+Mercy|Duffy|2008
+Disturbia|Rihanna|2008
+Sex on Fire|Kings of Leon|2008
+Just Dance|Lady Gaga|2008
+Womanizer|Britney Spears|2008
+Hot N Cold|Katy Perry|2008
+Halo|Beyoncé|2008
+I'm Yours|Jason Mraz|2008
+Love Story|Taylor Swift|2008
+Dog Days Are Over|Florence + The Machine|2008
+Boom Boom Pow|The Black Eyed Peas|2009
+TiK ToK|Kesha|2009`],
+  s10: ['2010 i później', `
+Rolling in the Deep|Adele|2010
+Firework|Katy Perry|2010
+Party Rock Anthem|LMFAO|2011
+Moves Like Jagger|Maroon 5|2011
+Somebody That I Used to Know|Gotye|2011
+We Found Love|Rihanna|2011
+Call Me Maybe|Carly Rae Jepsen|2011
+Gangnam Style|PSY|2012
+Wake Me Up|Avicii|2013
+Get Lucky|Daft Punk|2013
+Happy|Pharrell Williams|2013
+Royals|Lorde|2013
+Let It Go|Idina Menzel|2013
+Shake It Off|Taylor Swift|2014
+All About That Bass|Meghan Trainor|2014
+Uptown Funk|Mark Ronson|2014
+Thinking Out Loud|Ed Sheeran|2014
+Hello|Adele|2015
+Lean On|Major Lazer|2015
+Sorry|Justin Bieber|2015
+Cheap Thrills|Sia|2016
+One Dance|Drake|2016
+Closer|The Chainsmokers|2016
+Shape of You|Ed Sheeran|2017
+Despacito|Luis Fonsi|2017
+Havana|Camila Cabello|2017
+Believer|Imagine Dragons|2017
+God's Plan|Drake|2018
+Shallow|Lady Gaga|2018
+Old Town Road|Lil Nas X|2018
+bad guy|Billie Eilish|2019
+Blinding Lights|The Weeknd|2019
+Dance Monkey|Tones and I|2019
+Watermelon Sugar|Harry Styles|2019
+Levitating|Dua Lipa|2020
+Heat Waves|Glass Animals|2020
+drivers license|Olivia Rodrigo|2021
+Stay|The Kid LAROI|2021
+Bad Habits|Ed Sheeran|2021
+As It Was|Harry Styles|2022
+Anti-Hero|Taylor Swift|2022
+Unholy|Sam Smith|2022
+Flowers|Miley Cyrus|2023
+Espresso|Sabrina Carpenter|2024
+Dynamite|Taio Cruz|2010
+Only Girl (In the World)|Rihanna|2010
+Just the Way You Are|Bruno Mars|2010
+Grenade|Bruno Mars|2010
+Waka Waka (This Time for Africa)|Shakira|2010
+Pumped Up Kicks|Foster the People|2010
+Someone Like You|Adele|2011
+Set Fire to the Rain|Adele|2011
+Titanium|David Guetta|2011
+Sexy and I Know It|LMFAO|2011
+Payphone|Maroon 5|2012
+Diamonds|Rihanna|2012
+Thrift Shop|Macklemore & Ryan Lewis|2012
+Locked Out of Heaven|Bruno Mars|2012
+Radioactive|Imagine Dragons|2012
+Blurred Lines|Robin Thicke|2013
+Counting Stars|OneRepublic|2013
+Roar|Katy Perry|2013
+Wrecking Ball|Miley Cyrus|2013
+Timber|Pitbull|2013
+Take Me to Church|Hozier|2013
+Stay with Me|Sam Smith|2014
+Chandelier|Sia|2014
+Love Me Like You Do|Ellie Goulding|2015
+See You Again|Wiz Khalifa|2015
+Can't Feel My Face|The Weeknd|2015
+Stressed Out|Twenty One Pilots|2015
+Love Yourself|Justin Bieber|2015
+Faded|Alan Walker|2015
+Lush Life|Zara Larsson|2015
+Starboy|The Weeknd|2016
+This Is What You Came For|Calvin Harris|2016
+Perfect|Ed Sheeran|2017
+New Rules|Dua Lipa|2017
+Thunder|Imagine Dragons|2017
+Shotgun|George Ezra|2018
+Sunflower|Post Malone|2018
+Without Me|Halsey|2018
+Someone You Loved|Lewis Capaldi|2018
+7 rings|Ariana Grande|2019
+Señorita|Shawn Mendes|2019
+Don't Start Now|Dua Lipa|2019
+Save Your Tears|The Weeknd|2020
+Mood|24kGoldn|2020
+MONTERO (Call Me By Your Name)|Lil Nas X|2021
+good 4 u|Olivia Rodrigo|2021
+Shivers|Ed Sheeran|2021
+About Damn Time|Lizzo|2022
+Calm Down|Rema|2022
+Kill Bill|SZA|2022
+vampire|Olivia Rodrigo|2023
+Paint The Town Red|Doja Cat|2023
+Houdini|Dua Lipa|2023
+Lose Control|Teddy Swims|2023
+Beautiful Things|Benson Boone|2024
+Too Sweet|Hozier|2024
+BIRDS OF A FEATHER|Billie Eilish|2024
+APT.|ROSÉ|2024
+Die With A Smile|Lady Gaga|2024`],
+  rock: ['Rock', `
+Johnny B. Goode|Chuck Berry|1958
+(I Can't Get No) Satisfaction|The Rolling Stones|1965
+Paint It Black|The Rolling Stones|1966
+Purple Haze|Jimi Hendrix|1967
+Born to Be Wild|Steppenwolf|1968
+Whole Lotta Love|Led Zeppelin|1969
+Paranoid|Black Sabbath|1970
+Layla|Derek & The Dominos|1970
+Smoke on the Water|Deep Purple|1972
+Sweet Home Alabama|Lynyrd Skynyrd|1974
+Bohemian Rhapsody|Queen|1975
+Born to Run|Bruce Springsteen|1975
+Hotel California|Eagles|1976
+(Don't Fear) The Reaper|Blue Öyster Cult|1976
+We Will Rock You|Queen|1977
+Highway to Hell|AC/DC|1979
+Another Brick in the Wall, Pt. 2|Pink Floyd|1979
+Back in Black|AC/DC|1980
+Don't Stop Believin'|Journey|1981
+Eye of the Tiger|Survivor|1982
+Livin' on a Prayer|Bon Jovi|1986
+The Final Countdown|Europe|1986
+Sweet Child O' Mine|Guns N' Roses|1987
+Welcome to the Jungle|Guns N' Roses|1987
+Thunderstruck|AC/DC|1990
+Smells Like Teen Spirit|Nirvana|1991
+Enter Sandman|Metallica|1991
+Losing My Religion|R.E.M.|1991
+Creep|Radiohead|1992
+Zombie|The Cranberries|1994
+Basket Case|Green Day|1994
+Black Hole Sun|Soundgarden|1994
+Song 2|Blur|1997
+Californication|Red Hot Chili Peppers|1999
+In the End|Linkin Park|2000
+Seven Nation Army|The White Stripes|2003
+Mr. Brightside|The Killers|2003
+Boulevard of Broken Dreams|Green Day|2004
+Use Somebody|Kings of Leon|2008
+Do I Wanna Know?|Arctic Monkeys|2013
+Believer|Imagine Dragons|2017
+You Really Got Me|The Kinks|1964
+Light My Fire|The Doors|1967
+Sunshine of Your Love|Cream|1967
+All Along the Watchtower|Jimi Hendrix|1968
+Gimme Shelter|The Rolling Stones|1969
+Fortunate Son|Creedence Clearwater Revival|1969
+Iron Man|Black Sabbath|1970
+Dream On|Aerosmith|1973
+Free Bird|Lynyrd Skynyrd|1973
+Walk This Way|Aerosmith|1975
+Rock and Roll All Nite|KISS|1975
+More Than a Feeling|Boston|1976
+Barracuda|Heart|1977
+Roxanne|The Police|1978
+Message in a Bottle|The Police|1979
+London Calling|The Clash|1979
+You Shook Me All Night Long|AC/DC|1980
+Ace of Spades|Motörhead|1980
+Run to the Hills|Iron Maiden|1982
+Should I Stay or Should I Go|The Clash|1982
+Still Loving You|Scorpions|1984
+Pour Some Sugar on Me|Def Leppard|1987
+Paradise City|Guns N' Roses|1987
+Rockin' in the Free World|Neil Young|1989
+Wind of Change|Scorpions|1990
+Nothing Else Matters|Metallica|1991
+November Rain|Guns N' Roses|1991
+Under the Bridge|Red Hot Chili Peppers|1991
+Everlong|Foo Fighters|1997
+Learn to Fly|Foo Fighters|1999
+Last Nite|The Strokes|2001
+Plug In Baby|Muse|2001
+Chop Suey!|System of a Down|2001
+How You Remind Me|Nickelback|2001
+Bring Me to Life|Evanescence|2003
+Somebody Told Me|The Killers|2004
+I Bet You Look Good on the Dancefloor|Arctic Monkeys|2005
+The Pretender|Foo Fighters|2007
+Sex on Fire|Kings of Leon|2008
+Uprising|Muse|2009
+Radioactive|Imagine Dragons|2012
+ZITTI E BUONI|Måneskin|2021`],
+  rapus: ['Rap i trap USA', `
+Rapper's Delight|The Sugarhill Gang|1979
+The Message|Grandmaster Flash and The Furious Five|1982
+Walk This Way|Run-DMC|1986
+Straight Outta Compton|N.W.A.|1988
+Fight the Power|Public Enemy|1989
+U Can't Touch This|MC Hammer|1990
+Nuthin' but a G Thang|Dr. Dre|1992
+It Was a Good Day|Ice Cube|1992
+Jump Around|House of Pain|1992
+C.R.E.A.M.|Wu-Tang Clan|1993
+Juicy|The Notorious B.I.G.|1994
+Gangsta's Paradise|Coolio|1995
+California Love|2Pac|1995
+Shook Ones, Pt. II|Mobb Deep|1995
+Hypnotize|The Notorious B.I.G.|1997
+Still D.R.E.|Dr. Dre|1999
+Forgot About Dre|Dr. Dre|1999
+Big Pimpin'|JAY-Z|1999
+The Real Slim Shady|Eminem|2000
+Stan|Eminem|2000
+Ms. Jackson|OutKast|2000
+Get Ur Freak On|Missy Elliott|2001
+Lose Yourself|Eminem|2002
+Without Me|Eminem|2002
+Hot in Herre|Nelly|2002
+Work It|Missy Elliott|2002
+In da Club|50 Cent|2003
+99 Problems|JAY-Z|2003
+Candy Shop|50 Cent|2005
+Gold Digger|Kanye West|2005
+Ridin'|Chamillionaire|2005
+Stronger|Kanye West|2007
+Low|Flo Rida|2007
+Lollipop|Lil Wayne|2008
+A Milli|Lil Wayne|2008
+Empire State of Mind|JAY-Z|2009
+Black and Yellow|Wiz Khalifa|2010
+Super Bass|Nicki Minaj|2010
+Swimming Pools (Drank)|Kendrick Lamar|2012
+Thrift Shop|Macklemore & Ryan Lewis|2012
+Alright|Kendrick Lamar|2015
+Hotline Bling|Drake|2015
+Bad and Boujee|Migos|2016
+goosebumps|Travis Scott|2016
+HUMBLE.|Kendrick Lamar|2017
+Mask Off|Future|2017
+rockstar|Post Malone|2017
+XO Tour Llif3|Lil Uzi Vert|2017
+Bodak Yellow|Cardi B|2017
+God's Plan|Drake|2018
+SICKO MODE|Travis Scott|2018
+Lucid Dreams|Juice WRLD|2017
+Old Town Road|Lil Nas X|2018
+The Box|Roddy Ricch|2019
+WAP|Cardi B|2020
+INDUSTRY BABY|Lil Nas X|2021
+First Class|Jack Harlow|2022
+Not Like Us|Kendrick Lamar|2024`],
+  rappl: ['Rap i trap PL', `
+Scyzoryk|Liroy|1995
+Plus i minus|Kaliber 44|1996
+Jestem Bogiem|Paktofonika|2000
+Chwile ulotne|Paktofonika|2000
+Tabasko|O.S.T.R.|2002
+Deszcz na betonie|Taco Hemingway|2016
+Molly|PRO8L3M|2016
+Madagaskar|Quebonafide|2017
+Polskie tango|Taco Hemingway|2020
+Kryptowaluty|Taconafide|2018
+Tamagotchi|Taconafide|2018
+Patointeligencja|Mata|2019
+Schodki|Mata|2020
+Kochana Polsko|O.S.T.R.|2002
+Polepiony|Fisz|2000
+To my, niechciani|Molesta Ewenement|2000
+Wszystko Wporzo|Molesta Ewenement|2008
+63 Dni Chwały|Hemp Gru|2009
+Nowy Trueschool|Paluch|2010
+Niech płoną|Słoń|2010
+Banicja|Bisz|2012
+Żywioły|Ten Typ Mes|2011
+Następna stacja|Taco Hemingway|2015
+Ciernie|Quebonafide|2015
+Pok0ra|Żabson|2015
+Marmur|Taco Hemingway|2016
+Puszki, kartony, butelki|Bedoes|2016
+Jumpman|Bedoes|2016
+VHS|PRO8L3M|2016
+Szaman|Paluch|2016
+Zakochany kundel|Kaz Bałagane|2016
+Dr. Traphouse|Kaz Bałagane|2016
+Papierosy|ReTo|2016
+Bossman|ReTo|2016
+Bogini|Quebonafide|2017
+Bollywood|Quebonafide|2017
+Candy|Quebonafide|2017
+Ibra|Bedoes|2017
+Na serio|Białas|2017
+NajsHajs|Sarius|2017
+Grill u Gawrona|Białas|2018
+Hinata|Szpaku|2018
+UFO|Szpaku|2018
+Wiking|Sarius|2018
+Jagodzianki|Malik Montana|2019
+Mogę Dziś Umierać|White 2115|2019
+Wszystko OK|Jan-Rapowanie|2019
+Wybory|Jan-Rapowanie|2019
+TOKYO2020|Quebonafide|2020
+Skrable|PRO8L3M|2020
+Impreza|Sobel|2020
+BLUEBERRY|Guzior|2020
+Święto ogródka|Białas|2021
+Cień|Szczyl|2021
+Jak urosnę|Sokół|2021
+Comme Des Garçons|Chivas|2021
+Jetlag|Malik Montana|2023
+Gelato|Taco Hemingway|2023
+PRZEBITA W SERCU STRZAŁA|Tede|2023
+SOBOTA WIECZÓR|Young Leosia|2024
+KOCHASZ?|Sobel|2024
+1 na 100|White 2115|2024
+PRZEKAZ MYŚLI|Żabson|2024
+Plaster|Szpaku|2024
+BEZ STRESU|Taco Hemingway|2025
+TRAMWAJE|Taco Hemingway|2025
+NORADRENALINA|Quebonafide|2025
+KIEROWNIK|Kizo|2025
+CALIFORNIA LOVE|White 2115|2026
+Bez strachu|Paluch|2013
+Szlugi i kalafiory|Taco Hemingway|2015
+Wszystko jedno|Taco Hemingway|2015
+Nostalgia|Taco Hemingway|2017
+Fiji|Taco Hemingway|2018
+Pretty Boy|White 2115|2022
+Ground Zero|PRO8L3M|2018
+Lloret de Mar|Mata|2024
+Szklanki|Young Leosia|2021
+Jungle Girl|Young Leosia|2021`]
+};
+const DECKS = Object.fromEntries(Object.entries(DECK_SRC).map(([id, [name, src]]) => [id, {
+  name,
+  songs: src.trim().split('\n').map(l => { const [title, artist, year] = l.split('|'); return { title, artist, year: parseInt(year, 10) }; })
+}]));
+// Mix = wszystkie talie razem, bez powtórzeń.
+(() => {
+  const seen = new Set(), all = [];
+  for (const d of Object.values(DECKS)) for (const s of d.songs) {
+    const k = (s.artist + '|' + s.title).toLowerCase();
+    if (!seen.has(k)) { seen.add(k); all.push(s); }
+  }
+  DECKS.mix.songs = all;
+  // Zakres lat każdej talii liczony z danych (nie wpisywany ręcznie — nie rozjedzie się po zmianach).
+  for (const d of Object.values(DECKS)) {
+    const ys = d.songs.map(x => x.year);
+    d.from = Math.min(...ys); d.to = Math.max(...ys);
+  }
+})();
+
+// ---------- historia zagranych utworów (w tej przeglądarce) ----------
+const HIST_KEY = 'tasma_played_v1';
+const songKey = s => (s.artist + '|' + s.title).toLowerCase();
+function loadPlayed() { try { return new Set(JSON.parse(localStorage.getItem(HIST_KEY) || '[]')); } catch { return new Set(); } }
+function savePlayed(set) { try { localStorage.setItem(HIST_KEY, JSON.stringify([...set])); } catch {} }
+function markPlayed(song) {
+  if (!S.deckId) return; // talie z Gemini nie trafiają do historii
+  const h = loadPlayed(); h.add(songKey(song)); savePlayed(h);
+}
+function freshCount(id) { const h = loadPlayed(); return DECKS[id].songs.filter(s => !h.has(songKey(s))).length; }
+// Układa talię: najpierw (na wierzchu) utwory jeszcze niegrane, na spodzie te już grane.
+// Gdy niegranych zostało za mało na całą grę, czyści historię tej talii.
+function buildDeck(id, needed) {
+  const h = loadPlayed();
+  const songs = DECKS[id].songs.map(s => ({ ...s }));
+  let fresh = songs.filter(s => !h.has(songKey(s)));
+  let old = songs.filter(s => h.has(songKey(s)));
+  let reset = false;
+  // Niegrane leżą na wierzchu, więc gra i tak sięga po nie najpierw. Historię tej talii czyścimy dopiero,
+  // gdy nowych zostało bardzo mało (min. z potrzeb gry i 1/4 talii) — inaczej małe talie resetowałyby się co grę.
+  if (fresh.length < Math.min(needed, Math.ceil(songs.length / 4))) {
+    songs.forEach(s => h.delete(songKey(s))); savePlayed(h);
+    fresh = songs; old = []; reset = true;
+  }
+  return { deck: [...shuffle(old), ...shuffle(fresh)], reset, fresh: fresh.length };
+}
+
+const $ = id => document.getElementById(id);
+const S = { players: [], deck: [], turn: 0, target: 10, current: null, slot: null, phase: 'idle', audio: null, prefetch: null };
+
+// ---------- narzędzia ----------
+// Tasowanie Fishera–Yatesa na kryptograficznym generatorze liczb losowych.
+const randInt = n => { const b = new Uint32Array(1); const lim = Math.floor(0x100000000 / n) * n; let x; do { crypto.getRandomValues(b); x = b[0]; } while (x >= lim); return x % n; };
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = randInt(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l').replace(/['’.]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const utwory = n => n + ' ' + (n === 1 ? 'utwór' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? 'utwory' : 'utworów');
+function show(view) { ['setup', 'loadingView', 'game', 'endView'].forEach(v => $(v).classList.toggle('hidden', v !== view)); document.body.classList.toggle('ingame', view === 'game'); document.body.classList.toggle('onsetup', view === 'setup'); }
+
+// JSONP tylko dla Deezera — jego API nie obsługuje CORS.
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = 'cb_' + Math.random().toString(36).slice(2);
+    const s = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('timeout')); }, 8000);
+    function cleanup() { clearTimeout(timer); window[cb] = () => { delete window[cb]; }; s.remove(); }
+    window[cb] = data => { cleanup(); resolve(data); };
+    s.onerror = () => { cleanup(); reject(new Error('network')); };
+    s.src = url + '&callback=' + cb;
+    document.body.appendChild(s);
+  });
+}
+
+// ---------- fragmenty audio: iTunes, a gdy zawiedzie — Deezer ----------
+// Każde źródło zwraca: {url, art} gdy znalazło, null gdy nie ma utworu, {error:true} gdy nie odpowiedziało.
+// Słowa, które zdradzają cover / karaoke / wersję koncertową itp.
+const NOT_ORIGINAL = ['karaoke', 'tribute', 'cover', 'instrumental', 'made famous', 'originally performed', 'in the style of',
+  'rerecord', 're record', 'live', 'remix', 'acoustic', 'lullaby', '8 bit', 'piano version', 'orchestra', 'symphonic',
+  'medley', 'sped up', 'slowed', 'workout', 'party hits', 'as made', 'cover version', 'w wykonaniu', 'wersja'];
+// Tytuł bez dopisków: „(Remastered 2011)”, „[Live]”, „ - Radio Edit”, „feat. X”.
+const cleanTitle = x => norm(String(x || '')
+  .replace(/\s*[\(\[][^\)\]]*[\)\]]/g, ' ')
+  .replace(/\s+-\s+.*$/, '')
+  .replace(/\s+(feat\.?|ft\.?|featuring)\s.*$/i, ''));
+function pickBest(song, items) {
+  const noThe = x => x.replace(/^the /, '');
+  const a = noThe(norm(song.artist)), t = norm(song.title), ct = cleanTitle(song.title);
+  const bad = text => NOT_ORIGINAL.some(w => text.includes(w) && !t.includes(w));
+  let best = null, bestScore = 0;
+  for (const it of items) {
+    if (!it.url) continue;
+    const ra = noThe(norm(it.artist)), rt = norm(it.title), ral = norm(it.album);
+    // Wykonawca: identyczny albo jedno jest początkiem/końcem drugiego („Queen” ↔ „Queen & David Bowie”, „Czesław Niemen” ↔ „Niemen”).
+    const artistOk = ra === a || ra.startsWith(a + ' ') || a.startsWith(ra + ' ') || a.endsWith(' ' + ra);
+    if (!artistOk) continue;
+    if (bad(ra) || bad(rt) || bad(ral)) continue;
+    // Tytuł musi się zgadzać dokładnie (po zdjęciu dopisków) — „California” ≠ „California Love”.
+    const crt = cleanTitle(it.title);
+    if (!crt || crt !== ct) continue;
+    const score = (ra === a ? 3 : 2) + (rt === t ? 1 : 0);
+    if (score > bestScore) { best = it; bestScore = score; }
+  }
+  return best ? { url: best.url, art: best.art } : null;
+}
+let itunesPausedUntil = 0;
+async function fromItunes(song) {
+  if (Date.now() < itunesPausedUntil) return { error: true };
+  const term = encodeURIComponent(`${song.artist} ${song.title}`);
+  // iTunes obsługuje CORS, więc zwykłe zapytanie — bez wstawiania cudzego skryptu do strony (JSONP).
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const res = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=10&country=PL`, { signal: ctrl.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    return pickBest(song, (data.results || []).map(r => ({
+      artist: r.artistName, title: r.trackName, album: r.collectionName, url: r.previewUrl, art: (r.artworkUrl100 || '').replace('100x100', '300x300')
+    })));
+  } catch (e) { console.warn('iTunes', e); itunesPausedUntil = Date.now() + 5 * 60 * 1000; return { error: true }; }
+  finally { clearTimeout(timer); }
+}
+async function fromDeezer(song) {
+  const q = encodeURIComponent(`${song.artist} ${song.title}`);
+  try {
+    const data = await jsonp(`https://api.deezer.com/search?q=${q}&limit=10&output=jsonp`);
+    if (data.error) return { error: true };
+    return pickBest(song, (data.data || []).map(r => ({
+      artist: r.artist && r.artist.name, title: r.title, album: r.album && r.album.title, url: r.preview, art: r.album && r.album.cover_medium
+    })));
+  } catch (e) { console.warn('Deezer', e); return { error: true }; }
+}
+async function findPreview(song) {
+  const it = await fromItunes(song);
+  if (it && !it.error) return it;
+  const dz = await fromDeezer(song);
+  if (dz && !dz.error) return dz;
+  // Oba nie odpowiedziały — utworu nie wyrzucamy, spróbujemy później.
+  if (it && it.error && dz && dz.error) return { error: true };
+  return null; // przynajmniej jedno źródło odpowiedziało, że utworu nie ma
+}
+
+// ---------- etapy ładowania ----------
+const TARGET = 45;
+const STAGES = ['Łączenie z Gemini', 'Układanie piosenek', 'Sprawdzanie listy', 'Szukanie pierwszego utworu (iTunes / Deezer)'];
+function resetStages() {
+  $('stages').innerHTML = STAGES.map((t, i) => `<li data-st="todo" id="st${i + 1}"><span class="ico"></span><span><b>${t}</b><small></small></span></li>`).join('');
+  setBar(0);
+}
+function stage(n, state, note) {
+  for (let i = 1; i < n; i++) { const el = $('st' + i); if (el.dataset.st === 'todo' || el.dataset.st === 'active') { el.dataset.st = 'done'; el.querySelector('.ico').textContent = '✓'; } }
+  const el = $('st' + n);
+  el.dataset.st = state;
+  el.querySelector('.ico').textContent = { done: '✓', warn: '!', todo: '' }[state] || '';
+  if (note !== undefined) el.querySelector('small').textContent = note;
+}
+function setBar(p) {
+  $('barFill').style.width = Math.round(p * 100) + '%';
+  $('barPct').textContent = Math.round(p * 100) + '%';
+}
+
+// ---------- Gemini: generowanie talii ----------
+async function geminiDeck(theme, key, model, retried = false) {
+  const prompt = `Jesteś ekspertem od historii muzyki popularnej. Przygotuj talię ${TARGET} rozpoznawalnych piosenek do gry, w której gracze zgadują rok wydania.
+Motyw: "${theme}".
+Zasady:
+- podawaj ROK PIERWSZEGO WYDANIA oryginalnego singla/utworu (nie remastera, nie składanki, nie coveru),
+- rozłóż piosenki możliwie równomiernie na przestrzeni lat w ramach motywu,
+- tylko utwory, które z dużym prawdopodobieństwem są w serwisach streamingowych,
+- nie powtarzaj wykonawców więcej niż dwa razy,
+- jeśli nie masz pewności co do roku, pomiń utwór.
+Zwróć WYŁĄCZNIE tablicę JSON obiektów: {"title": string, "artist": string, "year": number}.`;
+  // Jedna próba: odpowiedź strumieniowa (SSE), żeby liczyć piosenki na bieżąco.
+  // Limit: 90 s bez żadnych nowych danych. „Anuluj” przerywa w każdej chwili.
+  const IDLE = 90;
+  let useThinkCfg = true;
+  const attempt = async () => {
+    const ctrl = new AbortController();
+    S.cancelGen = () => ctrl.abort('cancel');
+    let idleTimer;
+    const bump = () => { clearTimeout(idleTimer); idleTimer = setTimeout(() => ctrl.abort('timeout'), IDLE * 1000); };
+    const started = Date.now();
+    let text = '', count = 0, connected = false;
+    const tick = setInterval(() => {
+      const s = Math.round((Date.now() - started) / 1000);
+      if (!connected) stage(1, 'active', `Czekam na odpowiedź Google… ${s} s`);
+      else if (count === 0) stage(2, 'active', `Gemini się zastanawia… ${s} s`);
+      else stage(2, 'active', `Ułożono ${count} z ok. ${TARGET} piosenek · ${s} s`);
+    }, 1000);
+    bump();
+    try {
+      stage(1, 'active', 'Wysyłam zapytanie…');
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`, {
+        method: 'POST',
+        signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: {
+          responseMimeType: 'application/json', temperature: 0.8,
+          // Krótkie „myślenie” = szybsza odpowiedź. Lista piosenek nie wymaga długiego rozumowania.
+          ...(useThinkCfg ? { thinkingConfig: { thinkingLevel: 'low' } } : {})
+        } })
+      });
+      if (!res.ok) {
+        let detail = '';
+        try { const j = await res.json(); detail = (Array.isArray(j) ? j[0] : j).error.message || ''; } catch {}
+        return { status: res.status, detail };
+      }
+      connected = true;
+      stage(1, 'done', 'Połączono');
+      stage(2, 'active', 'Gemini się zastanawia…');
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        bump();
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue;
+          try {
+            const j = JSON.parse(line.slice(5));
+            text += (j?.candidates?.[0]?.content?.parts || []).filter(p => !p.thought).map(p => p.text || '').join('');
+          } catch {}
+        }
+        count = (text.match(/"year"\s*:/g) || []).length;
+        setBar(Math.min(count / TARGET, 1));
+      }
+      return { status: 200, text };
+    } catch (e) {
+      if (ctrl.signal.reason === 'cancel') throw new Error('Anulowano.');
+      if (ctrl.signal.reason === 'timeout') return { status: 504, detail: `Brak nowych danych przez ${IDLE} s` };
+      throw new Error('Nie udało się połączyć z Gemini (' + e.message + '). Jeśli używasz Brave, spróbuj wyłączyć Shields dla tej strony.');
+    } finally { clearTimeout(idleTimer); clearInterval(tick); }
+  };
+  // Przeciążenie (503), limit (429) lub brak odpowiedzi (504): ponów z rosnącą przerwą.
+  const waits = [2, 4, 8];
+  const retryable = st => st === 503 || st === 429 || st === 504;
+  let r = await attempt();
+  if (r.status === 400 && /think/i.test(r.detail || '')) { useThinkCfg = false; r = await attempt(); }
+  for (let i = 0; i < waits.length && retryable(r.status); i++) {
+    for (let s = waits[i]; s > 0; s--) {
+      stage(1, 'warn', `${r.status === 504 ? 'Brak odpowiedzi' : 'Serwery przeciążone'}. Ponawiam za ${s} s (próba ${i + 2}/${waits.length + 1})`);
+      stage(2, 'todo', ''); setBar(0);
+      await new Promise(res => setTimeout(res, 1000));
+      if (S.cancelled) throw new Error('Anulowano.');
+    }
+    r = await attempt();
+  }
+  if (r.status !== 200) {
+    // Model wycofany? Jeśli Google podpowiada inny model, spróbuj raz z nim.
+    const suggested = r.status === 404 && !retried && ((r.detail || '').match(/use\s+models\/([\w.\-]+)/i) || [])[1];
+    if (suggested && suggested !== model) {
+      $('model').value = suggested;
+      stage(1, 'warn', `Model wycofany, przełączam na ${suggested}`);
+      return geminiDeck(theme, key, suggested, true);
+    }
+    const tip = retryable(r.status) ? ' Spróbuj za chwilę albo zagraj na wbudowanej talii.' : '';
+    throw new Error('Gemini odrzuciło zapytanie (' + r.status + (r.detail ? ': ' + r.detail : '') + ').' + tip);
+  }
+  stage(2, 'done', 'Piosenki ułożone'); setBar(1);
+  stage(3, 'active', 'Sprawdzam listę…');
+  const text = r.text.trim() || '[]';
+  let list;
+  try { list = JSON.parse(text.replace(/^```json|```$/g, '')); }
+  catch { throw new Error('Gemini zwróciło uszkodzoną listę. Spróbuj jeszcze raz.'); }
+  if (!Array.isArray(list)) list = list.songs || [];
+  const seen = new Set();
+  return list
+    .map(s => ({ title: String(s.title || '').trim(), artist: String(s.artist || '').trim(), year: parseInt(s.year, 10) }))
+    .filter(s => s.title && s.artist && s.year >= 1900 && s.year <= new Date().getFullYear())
+    .filter(s => { const k = norm(s.artist + s.title); if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
+// ---------- przebieg gry ----------
+async function startGame() {
+  $('setupErr').textContent = '';
+  S.gameId = (S.gameId || 0) + 1; S.prefetch = null;
+  const names = $('players').value.split('\n').map(s => s.trim()).filter(Boolean);
+  if (names.length < 1) { $('setupErr').textContent = 'Wpisz przynajmniej jednego gracza.'; return; }
+  if (names.length > 8) { $('setupErr').textContent = 'Maksymalnie 8 graczy.'; return; }
+  const source = $('source').value;
+  let deck;
+  if (source === 'gemini') {
+    const key = $('apiKey').value.trim();
+    if (!key) { $('setupErr').textContent = 'Wpisz klucz Gemini API albo wybierz wbudowaną talię.'; return; }
+    S.cancelled = false;
+    // „Anuluj” przerywa czekanie od razu, nawet gdy iTunes/Deezer jeszcze nie odpowiedziały.
+    const cancelled = new Promise(res => { S.onCancel = res; });
+    resetStages();
+    show('loadingView');
+    try {
+      deck = await geminiDeck($('theme').value.trim() || 'największe hity wszech czasów', key, $('model').value.trim() || 'gemini-3.8-flash');
+      if (deck.length < names.length * 3 + 5) throw new Error('Gemini zwróciło za mało piosenek (' + deck.length + '). Spróbuj innego motywu.');
+      stage(3, 'done', `${deck.length} piosenek w talii`);
+      stage(4, 'active', 'Szukam…');
+      S.deck = shuffle(deck);
+      S.deckId = null; S.notice = '';
+      S.players = names.map(name => ({ name, cards: [S.deck.pop()] }));
+      prefetchNext();
+      const first = await Promise.race([S.prefetch, cancelled]);
+      if (S.cancelled) throw new Error('Anulowano.');
+      if (!first) throw new Error('Nie znalazłem w iTunes ani w Deezerze żadnego utworu z tej talii.');
+      if (first.error) throw new Error('iTunes i Deezer nie odpowiadają. Odczekaj chwilę i spróbuj ponownie.');
+      stage(4, 'done', `Gotowe: pierwszy utwór czeka`);
+      S.prefetch = Promise.resolve(first);
+      await new Promise(res => setTimeout(res, 500));
+    } catch (e) { show('setup'); $('setupErr').textContent = e.message; return; }
+    S.target = parseInt($('target').value, 10);
+    S.turn = -1;
+    show('game');
+    return nextTurn();
+  }
+  S.target = parseInt($('target').value, 10);
+  // Ile utworów potrzeba na jedną grę: z zapasem na pudła i pominięcia.
+  const needed = names.length * (S.target + 4) + 10;
+  const built = buildDeck(source, needed);
+  S.deck = built.deck;
+  S.deckId = source;
+  S.players = names.map(name => ({ name, cards: [S.deck.pop()] }));
+  S.players.forEach(p => markPlayed(p.cards[0]));
+  S.turn = -1;
+  S.notice = built.reset ? 'W tej talii skończyły się nowe utwory, więc zaczynamy ją od nowa.' : '';
+  show('game');
+  nextTurn();
+}
+
+// Bierze kolejny utwór z talii, który ma fragment w iTunes.
+// Gdy iTunes nie odpowiada (np. limit zapytań), odkłada utwór z powrotem, czeka i ponawia.
+async function nextPlayable() {
+  const deck = S.deck, gid = S.gameId; // talia tej gry — nowa gra dostaje nową tablicę
+  let fails = 0;
+  while (deck.length) {
+    if (gid !== S.gameId) return null;
+    const song = deck.pop();
+    const p = await findPreview(song);
+    if (p && !p.error) return { ...song, ...p };
+    if (!p) continue; // utworu nie ma w iTunes: pomijamy
+    deck.push(song);
+    if (++fails > 8) return { error: true };
+    for (let s = Math.min(5 * fails, 30); s > 0; s--) {
+      if (S.phase === 'loading') $('status').textContent = `Serwisy z muzyką chwilowo nie odpowiadają. Ponawiam za ${s} s…`;
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    if (S.phase === 'loading') $('status').textContent = 'Szukam kolejnego utworu…';
+  }
+  return null;
+}
+async function drawPlayable() {
+  if (S.prefetch) { const p = await S.prefetch; S.prefetch = null; if (p && !p.error) return p; }
+  return nextPlayable();
+}
+function prefetchNext() { S.prefetch = nextPlayable(); }
+
+async function nextTurn(samePlayer = false) {
+  const gid = S.gameId;
+  stopAudio();
+  if (!samePlayer) S.turn = (S.turn + 1) % S.players.length;
+  S.slot = null; S.phase = 'loading'; S.current = null;
+  $('result').innerHTML = '';
+  render();
+  const card = await drawPlayable();
+  if (gid !== S.gameId) return; // w międzyczasie gra się skończyła albo zaczęła nowa
+  if (!card) return endGame('Talia się skończyła.');
+  if (card.error) return endGame('iTunes i Deezer przestały odpowiadać. Odczekaj kilka minut i zagraj ponownie.');
+  S.current = card; S.phase = 'listen';
+  markPlayed(card);
+  const audio = S.audio = new Audio(card.url);
+  audio.addEventListener('timeupdate', updateRing);
+  audio.addEventListener('ended', () => { setSpin(false); });
+  // Linki z Deezera wygasają po ok. godzinie — przy błędzie raz pobierz świeży link, zanim poprosisz o pominięcie.
+  audio.addEventListener('error', async () => {
+    setSpin(false);
+    if (S.audio !== audio || S.phase !== 'listen') return;
+    const fail = () => { if (S.audio === audio) $('status').textContent = 'Ten fragment nie chce się załadować. Kliknij „Pomiń utwór”.'; };
+    if (card.refreshed) return fail();
+    card.refreshed = true;
+    $('status').textContent = 'Odświeżam fragment…';
+    const fresh = await findPreview(card);
+    if (gid !== S.gameId || S.audio !== audio) return;
+    if (!fresh || fresh.error) return fail();
+    card.url = fresh.url; audio.src = fresh.url; audio.load();
+    $('status').textContent = 'Gotowe — kliknij płytę, żeby posłuchać.';
+  });
+  render();
+  prefetchNext();
+}
+
+function togglePlay() {
+  if (!S.audio) return;
+  if (S.audio.paused) { S.audio.play().then(() => setSpin(true)).catch(() => { $('status').textContent = 'Nie udało się odtworzyć dźwięku. Pomiń utwór.'; }); }
+  else { S.audio.pause(); setSpin(false); }
+}
+function stopAudio() { if (S.audio) { S.audio.pause(); S.audio = null; } setSpin(false); updateRing(); }
+function setSpin(on) { $('disc').classList.toggle('spin', on); }
+function updateRing() {
+  const a = S.audio, len = 653.45;
+  const p = a && a.duration ? a.currentTime / a.duration : 0;
+  $('ringFg').setAttribute('stroke-dashoffset', String(len * (1 - p)));
+}
+
+function sortedCards(p) { return [...p.cards].sort((a, b) => a.year - b.year); }
+
+function confirmPlacement() {
+  if (S.phase !== 'listen' || S.slot === null) return;
+  const p = S.players[S.turn];
+  const cards = sortedCards(p);
+  const left = cards[S.slot - 1], right = cards[S.slot];
+  const y = S.current.year;
+  const ok = (!left || left.year <= y) && (!right || y <= right.year);
+  S.phase = 'reveal';
+  S.notice = '';
+  if (ok) { S.current.isNew = true; p.cards.push(S.current); }
+  const c = S.current;
+  $('result').innerHTML = `<div class="result ${ok ? 'ok' : 'bad'}">
+    <div>${ok ? 'Dobrze! Karta zostaje u ciebie.' : 'Pudło. Karta przepada.'}</div>
+    <div class="song">${esc(c.title)} — ${esc(c.artist)}, <span style="color:var(--accent-2)">${c.year}</span></div></div>`;
+  render();
+  if (p.cards.length >= S.target) { const gid = S.gameId; setTimeout(() => { if (gid === S.gameId) endGame(); }, 1800); }
+}
+
+function endGame(reason) {
+  if (S.phase === 'ended') return;
+  S.phase = 'ended';
+  S.gameId = (S.gameId || 0) + 1; S.prefetch = null;
+  stopAudio();
+  const max = Math.max(...S.players.map(p => p.cards.length));
+  const winners = S.players.filter(p => p.cards.length === max).map(p => p.name);
+  $('winnerText').textContent = winners.length > 1 ? 'Remis: ' + winners.join(', ') : 'Wygrywa ' + winners[0] + '!';
+  $('winnerSub').textContent = (reason ? reason + ' ' : '') + S.players.map(p => `${p.name}: ${p.cards.length}`).join(' · ');
+  show('endView');
+}
+
+// ---------- widok ----------
+function render() {
+  const p = S.players[S.turn];
+  if (!p) return;
+  $('scores').innerHTML = S.players.map((pl, i) => `<span class="chip ${i === S.turn ? 'active' : ''}">${esc(pl.name)}<b>${pl.cards.length}/${S.target}</b></span>`).join('');
+  $('who').textContent = 'Tura: ' + p.name;
+  const st = {
+    loading: 'Szukam kolejnego utworu…',
+    listen: S.slot === null ? 'Kliknij płytę, żeby posłuchać. Potem wybierz miejsce na osi.' : 'Miejsce wybrane. Zatwierdź albo zmień.',
+    reveal: 'Odsłonięte!'
+  }[S.phase] || '';
+  $('status').textContent = st + (S.notice ? ' ' + S.notice : '');
+  $('playBtn').disabled = S.phase !== 'listen' && S.phase !== 'reveal';
+  $('confirmBtn').disabled = !(S.phase === 'listen' && S.slot !== null);
+  $('confirmBtn').classList.toggle('hidden', S.phase === 'reveal');
+  $('skipBtn').classList.toggle('hidden', S.phase === 'reveal');
+  $('skipBtn').disabled = S.phase !== 'listen';
+  $('nextBtn').classList.toggle('hidden', S.phase !== 'reveal' || p.cards.length >= S.target);
+  const lbl = $('discLabel');
+  if (S.phase === 'reveal' && S.current?.art) { lbl.style.backgroundImage = `url("${S.current.art}")`; lbl.textContent = ''; }
+  else { lbl.style.backgroundImage = ''; lbl.textContent = S.phase === 'loading' ? '…' : '?'; }
+
+  $('tlTitle').textContent = 'Oś czasu: ' + p.name;
+  $('tlHint').classList.toggle('hidden', S.phase !== 'listen');
+  const cards = sortedCards(p);
+  let html = '';
+  const canPlace = S.phase === 'listen';
+  for (let i = 0; i <= cards.length; i++) {
+    html += `<button class="slot ${canPlace && S.slot === i ? 'chosen' : ''}" data-slot="${i}" ${canPlace ? '' : 'disabled'} aria-label="Wstaw w miejsce ${i + 1}">+</button>`;
+    if (i < cards.length) {
+      const c = cards[i];
+      html += `<div class="card ${c.isNew && S.phase === 'reveal' && c === S.current ? 'new' : ''}"><div class="year">${c.year}</div><div><div class="t">${esc(c.title)}</div><div class="a">${esc(c.artist)}</div></div></div>`;
+    }
+  }
+  $('timeline').innerHTML = html;
+}
+
+// ---------- zdarzenia ----------
+$('deckOptions').innerHTML = Object.entries(DECKS).map(([id, d]) => `<option value="${id}">${esc(d.name)} (${d.from}–${d.to})</option>`).join('');
+$('source').value = 'mix';
+function renderDeckTiles() {
+  const cur = $('source').value;
+  const tiles = Object.entries(DECKS).map(([id, d]) => {
+    return `<button type="button" class="deck" role="radio" aria-checked="${cur === id}" data-deck="${id}">
+      <img src="grafiki/talia-${id}.jpg" alt="" width="256" height="256" loading="lazy"><b>${esc(d.name)}</b><small>${d.from}–${d.to} · ${utwory(d.songs.length)}</small></button>`;
+  });
+  tiles.push(`<button type="button" class="deck" role="radio" aria-checked="${cur === 'gemini'}" data-deck="gemini">
+      <span class="ai" aria-hidden="true">✦</span><b>Własny motyw</b><small>Gemini, wymaga klucza</small></button>`);
+  $('deckTiles').innerHTML = tiles.join('');
+}
+renderDeckTiles();
+$('deckTiles').addEventListener('click', e => {
+  const b = e.target.closest('.deck');
+  if (!b) return;
+  $('source').value = b.dataset.deck;
+  $('source').dispatchEvent(new Event('change'));
+  renderDeckTiles();
+});
+function updateDeckInfo() {
+  const id = $('source').value;
+  if (!DECKS[id]) { $('deckInfo').innerHTML = ''; return; }
+  const total = DECKS[id].songs.length, fresh = freshCount(id);
+  $('deckInfo').innerHTML = fresh === total
+    ? `Wszystkie ${utwory(total)} w tej talii czekają na pierwsze zagranie.`
+    : `Jeszcze niegrane: ${fresh} z ${total}. Gra najpierw losuje utwory, których jeszcze nie było. <a href="#" id="resetHist" style="color:var(--accent)">Wyczyść historię tej talii</a>`;
+  const r = $('resetHist');
+  if (r) r.addEventListener('click', ev => {
+    ev.preventDefault();
+    const h = loadPlayed(); DECKS[id].songs.forEach(x => h.delete(songKey(x))); savePlayed(h);
+    updateDeckInfo();
+  });
+}
+updateDeckInfo();
+$('source').addEventListener('change', e => { $('geminiBox').classList.toggle('hidden', e.target.value !== 'gemini'); updateDeckInfo(); });
+$('startBtn').addEventListener('click', startGame);
+$('cancelGenBtn').addEventListener('click', () => { S.cancelled = true; S.gameId = (S.gameId || 0) + 1; if (S.cancelGen) S.cancelGen(); if (S.onCancel) S.onCancel(null); });
+$('playBtn').addEventListener('click', togglePlay);
+$('confirmBtn').addEventListener('click', confirmPlacement);
+$('skipBtn').addEventListener('click', () => nextTurn(true));
+$('nextBtn').addEventListener('click', () => { S.players.forEach(pl => pl.cards.forEach(c => c.isNew = false)); nextTurn(); });
+$('timeline').addEventListener('click', e => {
+  const b = e.target.closest('.slot');
+  if (!b || S.phase !== 'listen') return;
+  S.slot = parseInt(b.dataset.slot, 10);
+  render();
+});
+$('quitBtn').addEventListener('click', () => endGame('Gra przerwana.'));
+$('againBtn').addEventListener('click', () => { S.prefetch = null; updateDeckInfo(); show('setup'); });
+</script>
+</body>
+</html>

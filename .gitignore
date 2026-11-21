@@ -1,0 +1,10 @@
+# Oryginały grafik z Gemini (ok. 2 MB każdy) — w repo są tylko zmniejszone wersje w grafiki/
+Gemini_Generated_Image_*.jpg
+
+# Ustawienia lokalne edytora / Claude
+.claude/
+
+# Pliki systemowe
+Thumbs.db
+desktop.ini
+.DS_Store
