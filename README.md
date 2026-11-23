@@ -18,16 +18,16 @@ Imprezowa gra muzyczna w przeglądarce: **posłuchaj fragmentu utworu, zgadnij, 
 
 | Talia | Utworów |
 |---|---|
-| Mix: wszystkie talie razem | 648 |
-| Polskie hity | 23 |
-| Złote lata 60. i 70. | 82 |
-| Lata 80. | 91 |
-| Lata 90. | 84 |
-| Lata 2000. | 86 |
-| 2010 i później | 103 |
-| Rock | 83 |
-| Rap i trap USA | 58 |
-| Rap i trap PL | 79 |
+| Mix: wszystkie talie razem | 1878 |
+| Polskie hity | 220 |
+| Złote lata 60. i 70. | 161 |
+| Lata 80. | 186 |
+| Lata 90. | 195 |
+| Lata 2000. | 202 |
+| 2010 i później | 336 |
+| Rock | 252 |
+| Rap i trap USA | 174 |
+| Rap i trap PL | 211 |
 
 Lata wydania zostały sprawdzone w MusicBrainz, Deezerze i iTunes — szczegóły w [audyt-talii.md](audyt-talii.md).
 Opcjonalnie można wygenerować własną talię na dowolny motyw przez Gemini (wymaga własnego klucza API, który zostaje tylko w przeglądarce).
