@@ -9,8 +9,13 @@
 <meta property="og:title" content="Pick My Music">
 <meta property="og:description" content="Posłuchaj. Zgadnij, kiedy to wyszło. Ułóż swoją oś czasu.">
 <meta property="og:image" content="grafiki/baner.jpg">
-<link rel="apple-touch-icon" href="grafiki/logo.jpg">
+<link rel="apple-touch-icon" href="grafiki/ikona-180.png">
 <link rel="icon" href="grafiki/logo.jpg">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pick My Music">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -177,6 +182,38 @@
   .tagline { text-align: center; color: var(--muted); margin: 0 0 16px; }
   body.onsetup header { display: none; }
   .winner .big { font-family: Fraunces, serif; font-size: 40px; margin: 8px 0; }
+  /* Tryby gry */
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mode { text-align: left; background: var(--panel-2); color: var(--text); border: 2px solid transparent; border-radius: 14px; padding: 12px 14px; font-weight: 500; }
+  .mode:hover { border-color: var(--line); }
+  .mode b { display: block; font-size: 15px; font-weight: 600; }
+  .mode small { display: block; color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.35; margin-top: 2px; }
+  .mode[aria-checked="true"] { border-color: var(--accent); background: rgba(255,122,89,.12); }
+  .switch { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; font-size: 14px; color: var(--text); cursor: pointer; }
+  .switch input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+  .chip .tok { color: var(--accent-2); font-weight: 600; margin-left: 6px; }
+  .chip small { color: var(--muted); margin-left: 6px; }
+  .extra { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .extra .q { font-size: 14px; color: var(--muted); width: 100%; }
+  .small-btn { padding: 8px 14px; font-size: 14px; }
+  .linkbtn { background: none; color: var(--muted); padding: 4px 0; font-weight: 500; font-size: 13px; text-decoration: underline; border-radius: 4px; }
+  .linkbtn:hover { color: var(--text); transform: none; }
+  .report { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; font-size: 13px; color: var(--muted); }
+  .report input { width: 110px; padding: 6px 10px; }
+  .result.steal { background: rgba(255,200,87,.12); border: 1px solid var(--accent-2); }
+  .slot.taken { border-style: solid; border-color: var(--accent-2); background: rgba(255,200,87,.15); color: var(--accent-2); opacity: 1; }
+  .icon-btn { padding: 6px 12px; font-size: 14px; margin-left: auto; }
+  /* Animacje */
+  .card.new { animation: pop .5s ease-out; }
+  @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+  .result { animation: rise .3s ease-out; }
+  .result.bad { animation: shake .45s; }
+  @keyframes rise { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes shake { 0%,100% { transform: none; } 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
+  .winner .trophy { animation: pop .7s ease-out; }
+  @media (prefers-reduced-motion: reduce) { .card.new, .result, .result.bad, .winner .trophy { animation: none; } }
+  #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+  @media (max-width: 640px) { .modes { grid-template-columns: 1fr; } .extra { justify-content: center; } }
 </style>
 </head>
 <body class="onsetup">
@@ -192,11 +229,18 @@
     <p class="tagline">Posłuchaj. Zgadnij, kiedy to wyszło. Ułóż swoją oś czasu.</p>
     <div class="panel">
       <h2>Nowa gra</h2>
-      <label for="players">Gracze (jeden na linię)</label>
+      <label id="modeLabel">Tryb gry</label>
+      <div class="modes" id="modeTiles" role="radiogroup" aria-labelledby="modeLabel">
+        <button type="button" class="mode" role="radio" data-mode="classic"><b>Klasyczny</b><small>Słuchasz, układasz na osi czasu. Kto pierwszy zbierze karty, wygrywa.</small></button>
+        <button type="button" class="mode" role="radio" data-mode="tokens"><b>Z żetonami</b><small>Zgadnij tytuł i wykonawcę, zbieraj żetony. Wydawaj je na pominięcie, przejęcie karty rywala albo kupno karty.</small></button>
+      </div>
+      <label for="players" id="playersLabel">Gracze (jeden na linię)</label>
       <textarea id="players">Ania
 Bartek</textarea>
-      <label id="deckLabel">Talia</label>
-      <div class="decks" id="deckTiles" role="radiogroup" aria-labelledby="deckLabel"></div>
+      <label class="switch"><input type="checkbox" id="teams"> Gramy w drużynach</label>
+      <div class="hint hidden" id="teamsHint">Jedna drużyna na linię, a po dwukropku jej skład, np. <i>Czerwoni: Ania, Bartek</i>. W każdej turze drużyny odpowiada kolejna osoba.</div>
+      <label id="deckLabel">Talie (możesz zaznaczyć kilka)</label>
+      <div class="decks" id="deckTiles" role="group" aria-labelledby="deckLabel"></div>
       <div class="hint" id="deckInfo"></div>
       <div class="row">
         <div>
@@ -205,14 +249,6 @@ Bartek</textarea>
             <option value="5">5 (szybka gra)</option>
             <option value="7">7</option>
             <option value="10" selected>10 (pełna gra)</option>
-          </select>
-        </div>
-        <div>
-          <select id="source" class="hidden" aria-hidden="true" tabindex="-1">
-            <optgroup label="Gotowe talie (bez klucza)" id="deckOptions"></optgroup>
-            <optgroup label="Własny motyw">
-              <option value="gemini">Gemini wygeneruje talię (wymaga klucza)</option>
-            </optgroup>
           </select>
         </div>
       </div>
@@ -240,7 +276,28 @@ Bartek</textarea>
       </div>
       <details>
         <summary>Zasady</summary>
-        <p class="sub">Każdy gracz zaczyna z jedną odkrytą kartą. W swojej turze słuchasz fragmentu piosenki i wybierasz miejsce na swojej osi czasu: przed, po albo między kartami, które już masz. Trafisz — karta zostaje u ciebie. Pomylisz się — przepada. Wygrywa ten, kto pierwszy zbierze ustaloną liczbę kart.</p>
+        <p class="sub">Każdy gracz (albo drużyna) zaczyna z jedną odkrytą kartą. W swojej turze słuchasz fragmentu piosenki i wybierasz miejsce na swojej osi czasu: przed, po albo między kartami, które już masz. Trafisz — karta zostaje u ciebie. Pomylisz się — przepada. Wygrywa ten, kto pierwszy zbierze ustaloną liczbę kart.</p>
+        <p class="sub"><b>Tryb z żetonami.</b> Każdy zaczyna z 2 żetonami (najwyżej 5). Jeśli przed odsłonięciem powiesz na głos tytuł i wykonawcę i trafisz — dostajesz żeton. Żetony wydajesz tak:</p>
+        <ul class="sub">
+          <li><b>1 żeton</b> — pominięcie utworu, którego nie chcesz układać;</li>
+          <li><b>1 żeton</b> — przejęcie: gdy rywal wybierze miejsce, wskazujesz inne na <i>jego</i> osi. Jeśli on się myli, a ty masz rację, karta trafia do ciebie;</li>
+          <li><b>3 żetony</b> — kupno karty: obecny utwór od razu trafia na twoją oś we właściwe miejsce.</li>
+        </ul>
+        <p class="sub">Przy remisie w kartach wygrywa ten, kto ma więcej żetonów.</p>
+      </details>
+      <details>
+        <summary>Zainstaluj jak aplikację</summary>
+        <p class="sub">Na iPhonie otwórz grę w Safari, stuknij <b>Udostępnij</b>, a potem <b>Do ekranu początkowego</b>. Na Androidzie w Chrome: menu ⋮ → <b>Zainstaluj aplikację</b>. Gra otworzy się na pełnym ekranie, z własną ikoną.</p>
+        <button class="ghost small-btn hidden" id="installBtn">Zainstaluj teraz</button>
+      </details>
+      <details id="reportsBox">
+        <summary>Zgłoszone błędne lata (<span id="reportsCount">0</span>)</summary>
+        <p class="sub">Utwory zgłoszone przyciskiem „Zły rok?” w czasie gry. Gra już ich nie losuje w tej przeglądarce. Skopiuj listę i wyślij ją autorowi talii, żeby poprawić ją dla wszystkich.</p>
+        <div class="sub" id="reportsList"></div>
+        <div class="actions" style="margin-top:10px">
+          <button class="ghost small-btn" id="copyReports">Kopiuj listę</button>
+          <button class="ghost small-btn" id="clearReports">Wyczyść zgłoszenia</button>
+        </div>
       </details>
     </div>
   </section>
@@ -277,6 +334,7 @@ Bartek</textarea>
             <button class="ghost" id="skipBtn">Pomiń utwór</button>
             <button id="nextBtn" class="hidden">Następny gracz</button>
           </div>
+          <div id="tokenBar" class="extra hidden"></div>
           <div id="result"></div>
         </div>
       </div>
@@ -290,7 +348,7 @@ Bartek</textarea>
       <div class="timeline" id="timeline"></div>
     </div>
 
-    <div class="actions"><button class="ghost" id="quitBtn">Zakończ grę</button></div>
+    <div class="actions"><button class="ghost" id="quitBtn">Zakończ grę</button><button class="ghost icon-btn" id="soundBtn" aria-pressed="true">🔊 Dźwięki</button></div>
   </section>
 
   <!-- KONIEC -->
@@ -304,6 +362,7 @@ Bartek</textarea>
     </div>
   </section>
 </div>
+<canvas id="confetti" class="hidden" aria-hidden="true"></canvas>
 
 <script>
 // Gotowe talie. Rok = pierwsze wydanie utworu (singiel lub album, co było wcześniej).
@@ -532,7 +591,6 @@ Biała armia|Bajm|1990
 Na Sen|Urszula|1996
 A Wszystko To...(Bo Ciebie Kocham)|Ich Troje|1999
 Tango Straconych|Ich Troje|2002
-Chi Mai|Feel|2026
 Maj|Varius Manx|2001
 Piątek|Varius Manx|2016
 Moje Eldorado|Varius Manx|2002
@@ -579,8 +637,7 @@ Silent Night|Viki Gabor|2019
 tylko kochaj mnie|Zalia|2026
 kawa i papierosy|Zalia|2026
 mam kogoś lepszego|bryska|2021
-Obca|bryska|2023
-na legalu|bryska|2022`],
+Obca|bryska|2023`],
   s60: ['Złote lata 60. i 70.', `
 Stand by Me|Ben E. King|1961
 Twist and Shout|The Beatles|1963
@@ -715,7 +772,6 @@ Son Of A Preacher Man|Dusty Springfield|1968
 I Only Want To Be With You|Dusty Springfield|1963
 My Girl|Otis Redding|1965
 These Arms of Mine|Otis Redding|1962
-These Arms of Mine|Otis Redding|1962
 I Want to Take You Higher|Sly & The Family Stone|1969
 Read Between the Lines|The Temptations|1977
 Please Come Home for Christmas|Eagles|1978
@@ -737,11 +793,9 @@ Girl|T. Rex|1971
 Hot Love (A Side)|T. Rex|1971
 Children Of The Revolution|T. Rex|1972
 Things Goin' On|Lynyrd Skynyrd|1973
-Please Come Home for Christmas|Eagles|1978
 Wasted Time|Eagles|1976
 Summer Madness|Kool & The Gang|1974
 Jungle Boogie|Kool & The Gang|1973
-The Air That I Breathe|The Hollies|1974
 The Air That I Breathe|The Hollies|1974`],
   s80: ['Lata 80.', `
 Another One Bites the Dust|Queen|1980
@@ -927,8 +981,6 @@ Are You Hearing (What I Hear)?|Level 42|1982
 Der Kommissar|Falco|1982
 Rock Me Amadeus|Falco|1985
 Jeanny|Falco|1985
-Baby Can I Hold You|Tracy Chapman|1988
-Did I Hear You Say You Love Me|Stevie Wonder|1980
 Did I Hear You Say You Love Me|Stevie Wonder|1980`],
   s90: ['Lata 90.', `
 Vogue|Madonna|1990
@@ -1123,8 +1175,6 @@ Nitro (Youth Energy)|The Offspring|1994
 The Waiting Room|Sixpence None the Richer|1997
 The Shoop Shoop Song (It's In His Kiss)|Cher|1990
 Teardrop|Massive Attack|1998
-Too Young to Die|Jamiroquai|1993
-Sad But True|Metallica|1991
 Sad But True|Metallica|1991`],
   s00: ['Lata 2000.', `
 Oops!... I Did It Again|Britney Spears|2000
@@ -1279,7 +1329,6 @@ Make This Go On Forever|Snow Patrol|2006
 How To Be Dead|Snow Patrol|2003
 If I Ain't Got You|Alicia Keys|2003
 Empire State of Mind (Part II) Broken Down|Alicia Keys|2009
-Un De Vez En Cuando|Las Ketchup|2002
 Kusha Las Payas|Las Ketchup|2002
 Me Persigue Un Chulo|Las Ketchup|2002
 Despre tine|O-Zone|2002
@@ -1324,10 +1373,8 @@ It Can't Come Quickly Enough|Scissor Sisters|2003
 When I'm Gone|3 Doors Down|2002
 Memories|David Guetta|2009
 Call on Me|Eric Prydz|2004
-Camilla|Basshunter|2008
 Everytime We Touch|Cascada|2005
 Miracle|Cascada|2004
-Bad Boy|Cascada|2004
 Bad Boy|Cascada|2004`],
   s10: ['2010 i później', `
 Rolling in the Deep|Adele|2010
@@ -1651,7 +1698,6 @@ Pink Pony Club|Chappell Roan|2020
 Sorry I'm Here For Someone Else|Benson Boone|2025
 HONEY (ARE U COMING?)|Måneskin|2021
 L'altra dimensione|Måneskin|2018
-Dolce|Luis Fonsi|2022
 It Ain't Me|Kygo|2017
 Can't Tame Her|Zara Larsson|2023
 Mountain Song|Alan Walker|2017
@@ -1917,8 +1963,7 @@ Sex Type Thing|Stone Temple Pilots|1992
 Interstate Love Song|Stone Temple Pilots|1994
 This Is War|Thirty Seconds to Mars|2009
 Hail to the Victor|Thirty Seconds to Mars|2018
-Days Are Forgotten|Kasabian|2011
-Hail to the Victor|Thirty Seconds to Mars|2018`],
+Days Are Forgotten|Kasabian|2011`],
   rapus: ['Rap i trap USA', `
 Rapper's Delight|The Sugarhill Gang|1979
 The Message|Grandmaster Flash and The Furious Five|1982
@@ -2084,7 +2129,6 @@ Touch it|Busta Rhymes|2005
 Check Yo Self|Ice Cube|1992
 This Is America|Childish Gambino|2018
 The Thrill|Wiz Khalifa|2020
-Tomorrow 2|GloRilla|2022
 That's All She Wrote|T.I.|2010
 pick up the phone|Young Thug|2016
 Raw (Might Just)|Young Thug|2015
@@ -2092,8 +2136,7 @@ one of wun|Gunna|2024
 Wu Tang Raised Me|Logic|2025
 Jiggly Bow Bow|GloRilla|2026
 Yeah Glo!|GloRilla|2024
-Blueberry Yum Yum|Ludacris|2004
-Yeah Glo!|GloRilla|2024`],
+Blueberry Yum Yum|Ludacris|2004`],
   rappl: ['Rap i trap PL', `
 Scyzoryk|Liroy|1995
 Plus i minus|Kaliber 44|1996
@@ -2192,7 +2235,6 @@ Byłem człowiekiem|PRO8L3M|2023
 Polsilver|PRO8L3M|2025
 Gdybyś Kiedyś|Paluch|2016
 ONE TYLKO KŁAMIĄ|Sobel|2024
-ONE TYLKO KŁAMIĄ|Sobel|2024
 Sexoholik|Zabson|2021
 LOLA|Zabson|2025
 Nigdzie się nie wybieram (przysięgam)|Szpaku|2026
@@ -2229,7 +2271,6 @@ Mój rap, moja rzeczywistość|Peja|2001
 Kolejny stracony dzień|Peja|2001
 Jest jedna rzecz (Klub Wersja)|Peja|2001
 Wpadłaś mi do oka|Szczyl|2026
-Kręgi|Bisz|2021
 Esc|Ten Typ Mes|2014
 Zanim znajdziemy|Ten Typ Mes|2011
 Otwarcie|Ten Typ Mes|2011
@@ -2304,7 +2345,6 @@ Rap to nie zabawa już|Abradab|2005
 Szydło|Abradab|2020
 JA to WIEM|Liroy|2025
 NONSTOPER|Liroy|2025
-Czarny Śląsk|Kaliber 44|2023
 Czarny Śląsk|Kaliber 44|2023`]
 };
 const DECKS = Object.fromEntries(Object.entries(DECK_SRC).map(([id, [name, src]]) => [id, {
@@ -2332,15 +2372,39 @@ const songKey = s => (s.artist + '|' + s.title).toLowerCase();
 function loadPlayed() { try { return new Set(JSON.parse(localStorage.getItem(HIST_KEY) || '[]')); } catch { return new Set(); } }
 function savePlayed(set) { try { localStorage.setItem(HIST_KEY, JSON.stringify([...set])); } catch {} }
 function markPlayed(song) {
-  if (!S.deckId) return; // talie z Gemini nie trafiają do historii
+  if (!S.fromDecks) return; // talie z Gemini nie trafiają do historii
   const h = loadPlayed(); h.add(songKey(song)); savePlayed(h);
 }
-function freshCount(id) { const h = loadPlayed(); return DECKS[id].songs.filter(s => !h.has(songKey(s))).length; }
+
+// ---------- zgłoszenia „Zły rok?” (w tej przeglądarce) ----------
+const REP_KEY = 'pmm_reports_v1';
+function loadReports() { try { const a = JSON.parse(localStorage.getItem(REP_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } }
+function saveReports(a) { try { localStorage.setItem(REP_KEY, JSON.stringify(a)); } catch {} }
+const reportedKeys = () => new Set(loadReports().map(songKey));
+
+// ---------- wybór talii: kilka naraz ----------
+const SEL_KEY = 'pmm_decks_v1';
+let selDecks = (() => {
+  try { const a = JSON.parse(localStorage.getItem(SEL_KEY)); if (Array.isArray(a) && a.length && a.every(x => DECKS[x] || x === 'gemini')) return a; } catch {}
+  return ['mix'];
+})();
+const isGemini = () => selDecks[0] === 'gemini';
+// Utwory z zaznaczonych talii, bez powtórzeń i bez zgłoszonych jako błędne.
+function selectedSongs(ids = selDecks) {
+  const seen = new Set(), rep = reportedKeys(), out = [];
+  for (const id of ids) for (const s of (DECKS[id] ? DECKS[id].songs : [])) {
+    const k = songKey(s);
+    if (seen.has(k) || rep.has(k)) continue;
+    seen.add(k); out.push(s);
+  }
+  return out;
+}
+function freshCount(songs) { const h = loadPlayed(); return songs.filter(s => !h.has(songKey(s))).length; }
 // Układa talię: najpierw (na wierzchu) utwory jeszcze niegrane, na spodzie te już grane.
-// Gdy niegranych zostało za mało na całą grę, czyści historię tej talii.
-function buildDeck(id, needed) {
+// Gdy niegranych zostało za mało na całą grę, czyści historię tych utworów.
+function buildDeck(ids, needed) {
   const h = loadPlayed();
-  const songs = DECKS[id].songs.map(s => ({ ...s }));
+  const songs = selectedSongs(ids).map(s => ({ ...s }));
   let fresh = songs.filter(s => !h.has(songKey(s)));
   let old = songs.filter(s => h.has(songKey(s)));
   let reset = false;
@@ -2354,7 +2418,58 @@ function buildDeck(id, needed) {
 }
 
 const $ = id => document.getElementById(id);
-const S = { players: [], deck: [], turn: 0, target: 10, current: null, slot: null, phase: 'idle', audio: null, prefetch: null };
+const S = { players: [], deck: [], turn: 0, target: 10, current: null, slot: null, phase: 'idle', audio: null, prefetch: null,
+  mode: 'classic', teams: false, stealer: null, stealSlot: null, audioFailed: false };
+const TOKENS_START = 2, TOKENS_MAX = 5, BUY_COST = 3;
+try { if (localStorage.getItem('pmm_mode') === 'tokens') S.mode = 'tokens'; } catch {}
+
+// ---------- dźwięki (syntezowane w przeglądarce, bez plików) ----------
+const SFX = { ctx: null, on: true };
+try { SFX.on = localStorage.getItem('pmm_sound') !== '0'; } catch {}
+function tone(seq) {
+  if (!SFX.on) return;
+  try {
+    const c = SFX.ctx || (SFX.ctx = new (window.AudioContext || window.webkitAudioContext)());
+    if (c.state === 'suspended') c.resume();
+    let t = c.currentTime + 0.02;
+    for (const [f, d, type = 'sine', vol = 0.16] of seq) {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+      o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + 0.05);
+      t += d * 0.75;
+    }
+  } catch {}
+}
+const sfx = {
+  ok: () => tone([[523, .13], [659, .13], [784, .26]]),
+  bad: () => tone([[233, .2, 'sawtooth', .07], [175, .35, 'sawtooth', .07]]),
+  token: () => tone([[988, .09, 'triangle'], [1319, .2, 'triangle']]),
+  steal: () => tone([[392, .1, 'triangle'], [523, .1, 'triangle'], [784, .25, 'triangle']]),
+  win: () => tone([[523, .16], [659, .16], [784, .16], [1047, .5], [784, .14], [1047, .6]])
+};
+
+// ---------- konfetti ----------
+function confetti() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = $('confetti'), ctx = cv.getContext('2d');
+  cv.classList.remove('hidden');
+  const W = cv.width = innerWidth * devicePixelRatio, H = cv.height = innerHeight * devicePixelRatio;
+  const colors = ['#ff7a59', '#ffc857', '#4fd1a5', '#f3efe6', '#ff5d73', '#8f7cff'];
+  const ps = Array.from({ length: 160 }, () => ({
+    x: W / 2 + (Math.random() - .5) * W * .3, y: H * .35, vx: (Math.random() - .5) * 26 * devicePixelRatio, vy: (-Math.random() * 22 - 6) * devicePixelRatio,
+    s: (6 + Math.random() * 8) * devicePixelRatio, r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: colors[Math.floor(Math.random() * colors.length)]
+  }));
+  const t0 = performance.now();
+  (function frame(t) {
+    ctx.clearRect(0, 0, W, H);
+    for (const p of ps) {
+      p.vy += 0.55 * devicePixelRatio; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore();
+    }
+    if (t - t0 < 4500) requestAnimationFrame(frame); else { ctx.clearRect(0, 0, W, H); cv.classList.add('hidden'); }
+  })(t0);
+}
 
 // ---------- narzędzia ----------
 // Tasowanie Fishera–Yatesa na kryptograficznym generatorze liczb losowych.
@@ -2362,7 +2477,9 @@ const randInt = n => { const b = new Uint32Array(1); const lim = Math.floor(0x10
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = randInt(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l').replace(/['’.]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const utwory = n => n + ' ' + (n === 1 ? 'utwór' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? 'utwory' : 'utworów');
+const plural = (n, one, few, many) => n + ' ' + (n === 1 ? one : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? few : many);
+const utwory = n => plural(n, 'utwór', 'utwory', 'utworów');
+const karty = n => plural(n, 'karta', 'karty', 'kart');
 function show(view) { ['setup', 'loadingView', 'game', 'endView'].forEach(v => $(v).classList.toggle('hidden', v !== view)); document.body.classList.toggle('ingame', view === 'game'); document.body.classList.toggle('onsetup', view === 'setup'); }
 
 // JSONP tylko dla Deezera — jego API nie obsługuje CORS.
@@ -2585,12 +2702,22 @@ Zwróć WYŁĄCZNIE tablicę JSON obiektów: {"title": string, "artist": string,
 async function startGame() {
   $('setupErr').textContent = '';
   S.gameId = (S.gameId || 0) + 1; S.prefetch = null;
-  const names = $('players').value.split('\n').map(s => s.trim()).filter(Boolean);
-  if (names.length < 1) { $('setupErr').textContent = 'Wpisz przynajmniej jednego gracza.'; return; }
-  if (names.length > 8) { $('setupErr').textContent = 'Maksymalnie 8 graczy.'; return; }
-  const source = $('source').value;
+  S.teams = $('teams').checked;
+  const who = S.teams ? 'drużyny' : 'gracza', whoMany = S.teams ? 'drużyn' : 'graczy';
+  // Drużyny: „Czerwoni: Ania, Bartek” — po dwukropku skład (opcjonalny).
+  const entries = $('players').value.split('\n').map(s => s.trim()).filter(Boolean).map(line => {
+    if (!S.teams) return { name: line, members: [] };
+    const i = line.indexOf(':');
+    if (i < 0) return { name: line, members: [] };
+    return { name: line.slice(0, i).trim() || line, members: line.slice(i + 1).split(/[,;]/).map(s => s.trim()).filter(Boolean) };
+  });
+  const names = entries.map(e => e.name);
+  if (names.length < 1) { $('setupErr').textContent = `Wpisz przynajmniej jednego ${who}.`; return; }
+  if (names.length > 8) { $('setupErr').textContent = `Maksymalnie 8 ${whoMany}.`; return; }
+  const newPlayers = draw => entries.map(e => ({ name: e.name, members: e.members, mi: -1, tokens: TOKENS_START, cards: [draw()] }));
+  S.stealer = null; S.stealSlot = null;
   let deck;
-  if (source === 'gemini') {
+  if (isGemini()) {
     const key = $('apiKey').value.trim();
     if (!key) { $('setupErr').textContent = 'Wpisz klucz Gemini API albo wybierz wbudowaną talię.'; return; }
     S.cancelled = false;
@@ -2604,8 +2731,8 @@ async function startGame() {
       stage(3, 'done', `${deck.length} piosenek w talii`);
       stage(4, 'active', 'Szukam…');
       S.deck = shuffle(deck);
-      S.deckId = null; S.notice = '';
-      S.players = names.map(name => ({ name, cards: [S.deck.pop()] }));
+      S.fromDecks = false; S.notice = '';
+      S.players = newPlayers(() => S.deck.pop());
       prefetchNext();
       const first = await Promise.race([S.prefetch, cancelled]);
       if (S.cancelled) throw new Error('Anulowano.');
@@ -2623,13 +2750,14 @@ async function startGame() {
   S.target = parseInt($('target').value, 10);
   // Ile utworów potrzeba na jedną grę: z zapasem na pudła i pominięcia.
   const needed = names.length * (S.target + 4) + 10;
-  const built = buildDeck(source, needed);
+  const built = buildDeck(selDecks, needed);
+  if (built.deck.length < names.length + 5) { $('setupErr').textContent = 'W wybranych taliach jest za mało utworów.'; return; }
   S.deck = built.deck;
-  S.deckId = source;
-  S.players = names.map(name => ({ name, cards: [S.deck.pop()] }));
+  S.fromDecks = true;
+  S.players = newPlayers(() => S.deck.pop());
   S.players.forEach(p => markPlayed(p.cards[0]));
   S.turn = -1;
-  S.notice = built.reset ? 'W tej talii skończyły się nowe utwory, więc zaczynamy ją od nowa.' : '';
+  S.notice = built.reset ? 'W wybranych taliach skończyły się nowe utwory, więc zaczynamy je od nowa.' : '';
   show('game');
   nextTurn();
 }
@@ -2664,8 +2792,13 @@ function prefetchNext() { S.prefetch = nextPlayable(); }
 async function nextTurn(samePlayer = false) {
   const gid = S.gameId;
   stopAudio();
-  if (!samePlayer) S.turn = (S.turn + 1) % S.players.length;
+  if (!samePlayer) {
+    S.turn = (S.turn + 1) % S.players.length;
+    const t = S.players[S.turn];
+    if (t.members.length) t.mi = (t.mi + 1) % t.members.length; // w drużynie odpowiada kolejna osoba
+  }
   S.slot = null; S.phase = 'loading'; S.current = null;
+  S.stealer = null; S.stealSlot = null; S.audioFailed = false; S.bonusGiven = false;
   $('result').innerHTML = '';
   render();
   const card = await drawPlayable();
@@ -2681,7 +2814,7 @@ async function nextTurn(samePlayer = false) {
   audio.addEventListener('error', async () => {
     setSpin(false);
     if (S.audio !== audio || S.phase !== 'listen') return;
-    const fail = () => { if (S.audio === audio) $('status').textContent = 'Ten fragment nie chce się załadować. Kliknij „Pomiń utwór”.'; };
+    const fail = () => { if (S.audio === audio) { S.audioFailed = true; render(); $('status').textContent = 'Ten fragment nie chce się załadować. Kliknij „Pomiń utwór” (za darmo).'; } };
     if (card.refreshed) return fail();
     card.refreshed = true;
     $('status').textContent = 'Odświeżam fragment…';
@@ -2710,65 +2843,126 @@ function updateRing() {
 
 function sortedCards(p) { return [...p.cards].sort((a, b) => a.year - b.year); }
 
+const fits = (cards, slot, y) => { const l = cards[slot - 1], r = cards[slot]; return (!l || l.year <= y) && (!r || y <= r.year); };
+const tokensOn = () => S.mode === 'tokens';
+// Kto może przejąć kartę: inni gracze z co najmniej jednym żetonem.
+const stealers = () => S.players.map((pl, i) => ({ pl, i })).filter(({ pl, i }) => i !== S.turn && pl.tokens > 0);
+
 function confirmPlacement() {
-  if (S.phase !== 'listen' || S.slot === null) return;
-  const p = S.players[S.turn];
-  const cards = sortedCards(p);
-  const left = cards[S.slot - 1], right = cards[S.slot];
-  const y = S.current.year;
-  const ok = (!left || left.year <= y) && (!right || y <= right.year);
-  S.phase = 'reveal';
-  S.notice = '';
-  if (ok) { S.current.isNew = true; p.cards.push(S.current); }
-  const c = S.current;
-  $('result').innerHTML = `<div class="result ${ok ? 'ok' : 'bad'}">
-    <div>${ok ? 'Dobrze! Karta zostaje u ciebie.' : 'Pudło. Karta przepada.'}</div>
-    <div class="song">${esc(c.title)} — ${esc(c.artist)}, <span style="color:var(--accent-2)">${c.year}</span></div></div>`;
-  render();
-  if (p.cards.length >= S.target) { const gid = S.gameId; setTimeout(() => { if (gid === S.gameId) endGame(); }, 1800); }
+  if (S.phase === 'listen') {
+    if (S.slot === null) return;
+    // Tryb z żetonami: zanim odsłonimy, rywale mogą spróbować przejąć kartę.
+    if (tokensOn() && stealers().length) { S.phase = 'challenge'; return render(); }
+    return reveal();
+  }
+  if (S.phase === 'steal' && S.stealSlot !== null) return reveal();
 }
+
+function reveal(bought = false) {
+  const p = S.players[S.turn], cards = sortedCards(p), c = S.current, y = c.year;
+  S.phase = 'reveal'; S.notice = '';
+  const st = S.stealer !== null ? S.players[S.stealer] : null;
+  let gets = null, msg, cls;
+  if (bought) {
+    gets = p; cls = 'ok'; msg = `Kupione za ${BUY_COST} żetony — karta trafia na oś: ${p.name}.`;
+  } else {
+    if (st) st.tokens--;
+    if (fits(cards, S.slot, y)) { gets = p; cls = 'ok'; msg = 'Dobrze! Karta zostaje u ciebie.' + (st ? ` Przejęcie nieudane, żeton traci: ${st.name}.` : ''); }
+    else if (st && fits(cards, S.stealSlot, y)) { gets = st; cls = 'steal'; msg = `Pudło! Kartę przejmuje: ${st.name}.`; }
+    else { cls = 'bad'; msg = 'Pudło. Karta przepada.' + (st ? ` Przejęcie też chybione (${st.name} traci żeton).` : ''); }
+  }
+  if (gets) { c.isNew = true; gets.cards.push(c); }
+  ({ ok: sfx.ok, steal: sfx.steal, bad: sfx.bad })[cls]();
+  const bonus = tokensOn() && !bought
+    ? `<div class="extra" id="bonusBox"><span class="q">Czy ${esc(speaker(p))} podał(a) tytuł i wykonawcę przed odsłonięciem?</span>
+        <button class="small-btn" id="bonusYes" ${p.tokens >= TOKENS_MAX ? 'disabled title="Masz już najwięcej żetonów"' : ''}>Tak, +1 żeton</button></div>` : '';
+  $('result').innerHTML = `<div class="result ${cls}">
+    <div>${msg}</div>
+    <div class="song">${esc(c.title)} — ${esc(c.artist)}, <span style="color:var(--accent-2)">${c.year}</span></div>
+    ${bonus}
+    <div class="report" id="reportBox"><button class="linkbtn" id="reportBtn">Zły rok?</button></div></div>`;
+  render();
+  const winner = S.players.find(pl => pl.cards.length >= S.target);
+  if (winner) { const gid = S.gameId; setTimeout(() => { if (gid === S.gameId) endGame(); }, 2200); }
+}
+
+// Kto mówi w tej turze: w drużynie — kolejna osoba ze składu.
+function speaker(p) { return p.members && p.members.length ? p.members[Math.max(p.mi, 0)] : p.name; }
 
 function endGame(reason) {
   if (S.phase === 'ended') return;
   S.phase = 'ended';
   S.gameId = (S.gameId || 0) + 1; S.prefetch = null;
   stopAudio();
-  const max = Math.max(...S.players.map(p => p.cards.length));
-  const winners = S.players.filter(p => p.cards.length === max).map(p => p.name);
-  $('winnerText').textContent = winners.length > 1 ? 'Remis: ' + winners.join(', ') : 'Wygrywa ' + winners[0] + '!';
-  $('winnerSub').textContent = (reason ? reason + ' ' : '') + S.players.map(p => `${p.name}: ${p.cards.length}`).join(' · ');
+  // Ranking: najpierw karty, przy remisie (tryb z żetonami) — żetony.
+  const score = p => p.cards.length * 100 + (tokensOn() ? p.tokens : 0);
+  const best = Math.max(...S.players.map(score));
+  const winners = S.players.filter(p => score(p) === best).map(p => p.name);
+  const finished = S.players.some(p => p.cards.length >= S.target);
+  $('winnerText').textContent = winners.length > 1 ? 'Remis: ' + winners.join(', ') : (S.teams ? 'Wygrywa drużyna ' : 'Wygrywa ') + winners[0] + '!';
+  $('winnerSub').textContent = (reason ? reason + ' ' : '') + S.players.map(p => `${p.name}: ${karty(p.cards.length)}${tokensOn() ? ` · ${p.tokens} żet.` : ''}`).join('  |  ');
   show('endView');
+  if (finished || !reason) { sfx.win(); confetti(); }
 }
 
 // ---------- widok ----------
 function render() {
   const p = S.players[S.turn];
   if (!p) return;
-  $('scores').innerHTML = S.players.map((pl, i) => `<span class="chip ${i === S.turn ? 'active' : ''}">${esc(pl.name)}<b>${pl.cards.length}/${S.target}</b></span>`).join('');
-  $('who').textContent = 'Tura: ' + p.name;
+  const tok = tokensOn();
+  $('scores').innerHTML = S.players.map((pl, i) => `<span class="chip ${i === S.turn ? 'active' : ''}">${esc(pl.name)}<b>${pl.cards.length}/${S.target}</b>${tok ? `<span class="tok" title="Żetony">● ${pl.tokens}</span>` : ''}</span>`).join('');
+  $('who').textContent = (S.teams ? 'Tura drużyny: ' : 'Tura: ') + p.name + (p.members.length ? ' · odpowiada ' + speaker(p) : '');
+  const stealer = S.stealer !== null ? S.players[S.stealer] : null;
   const st = {
     loading: 'Szukam kolejnego utworu…',
-    listen: S.slot === null ? 'Kliknij płytę, żeby posłuchać. Potem wybierz miejsce na osi.' : 'Miejsce wybrane. Zatwierdź albo zmień.',
+    listen: S.slot === null ? 'Kliknij płytę, żeby posłuchać. Potem wybierz miejsce na osi.'
+      : 'Miejsce wybrane. Zatwierdź albo zmień.' + (tok ? ' Jeśli znasz tytuł i wykonawcę, powiedz je teraz na głos.' : ''),
+    challenge: `Miejsce wybrane. Czy ktoś chce spróbować przejąć kartę? Kosztuje 1 żeton.`,
+    steal: stealer ? `${stealer.name}: wskaż INNE miejsce na tej osi. Jeśli pierwszy wybór jest zły, a twój dobry, karta trafia do ciebie.` : '',
     reveal: 'Odsłonięte!'
   }[S.phase] || '';
   $('status').textContent = st + (S.notice ? ' ' + S.notice : '');
-  $('playBtn').disabled = S.phase !== 'listen' && S.phase !== 'reveal';
-  $('confirmBtn').disabled = !(S.phase === 'listen' && S.slot !== null);
-  $('confirmBtn').classList.toggle('hidden', S.phase === 'reveal');
-  $('skipBtn').classList.toggle('hidden', S.phase === 'reveal');
-  $('skipBtn').disabled = S.phase !== 'listen';
-  $('nextBtn').classList.toggle('hidden', S.phase !== 'reveal' || p.cards.length >= S.target);
+  const won = S.players.some(pl => pl.cards.length >= S.target);
+  $('playBtn').disabled = !['listen', 'challenge', 'steal', 'reveal'].includes(S.phase);
+  const confirming = S.phase === 'listen' || S.phase === 'steal';
+  $('confirmBtn').textContent = S.phase === 'steal' ? 'Odsłoń' : 'Zatwierdź miejsce';
+  $('confirmBtn').disabled = !(S.phase === 'listen' ? S.slot !== null : S.phase === 'steal' && S.stealSlot !== null);
+  $('confirmBtn').classList.toggle('hidden', !confirming);
+  // Pominięcie: w trybie z żetonami kosztuje żeton — chyba że fragment się nie załadował.
+  const skipFree = !tok || S.audioFailed;
+  $('skipBtn').textContent = skipFree ? 'Pomiń utwór' : 'Pomiń (1 żeton)';
+  $('skipBtn').classList.toggle('hidden', S.phase !== 'listen');
+  $('skipBtn').disabled = S.phase !== 'listen' || (!skipFree && p.tokens < 1);
+  $('nextBtn').classList.toggle('hidden', S.phase !== 'reveal' || won);
+  $('nextBtn').textContent = S.teams ? 'Następna drużyna' : 'Następny gracz';
+  // Pasek żetonów: kupno karty (w swojej turze) albo przejęcie (rywale).
+  const bar = $('tokenBar');
+  let tb = '';
+  if (tok && S.phase === 'listen') {
+    tb = `<button class="ghost small-btn" id="buyBtn" ${p.tokens >= BUY_COST ? '' : 'disabled'}>Kup kartę (${BUY_COST} żetony)</button>`;
+  } else if (S.phase === 'challenge') {
+    tb = `<span class="q">Kto przejmuje?</span>` + stealers().map(({ pl, i }) => `<button class="ghost small-btn" data-steal="${i}">${esc(pl.name)} (● ${pl.tokens})</button>`).join('')
+      + `<button class="small-btn" id="noStealBtn">Nikt — odsłoń</button>`;
+  } else if (S.phase === 'steal') {
+    tb = `<button class="ghost small-btn" id="cancelStealBtn">Rezygnuję z przejęcia</button>`;
+  }
+  bar.innerHTML = tb;
+  bar.classList.toggle('hidden', !tb);
   const lbl = $('discLabel');
   if (S.phase === 'reveal' && S.current?.art) { lbl.style.backgroundImage = `url("${S.current.art}")`; lbl.textContent = ''; }
   else { lbl.style.backgroundImage = ''; lbl.textContent = S.phase === 'loading' ? '…' : '?'; }
 
   $('tlTitle').textContent = 'Oś czasu: ' + p.name;
-  $('tlHint').classList.toggle('hidden', S.phase !== 'listen');
+  $('tlHint').classList.toggle('hidden', S.phase !== 'listen' && S.phase !== 'steal');
   const cards = sortedCards(p);
   let html = '';
-  const canPlace = S.phase === 'listen';
+  const canPlace = S.phase === 'listen' || S.phase === 'steal';
+  const showChoice = ['listen', 'challenge', 'steal'].includes(S.phase);
   for (let i = 0; i <= cards.length; i++) {
-    html += `<button class="slot ${canPlace && S.slot === i ? 'chosen' : ''}" data-slot="${i}" ${canPlace ? '' : 'disabled'} aria-label="Wstaw w miejsce ${i + 1}">+</button>`;
+    let cls = '', dis = !canPlace;
+    if (showChoice && S.slot === i) { cls = S.phase === 'listen' ? 'chosen' : 'taken'; if (S.phase === 'steal') dis = true; }
+    if (S.phase === 'steal' && S.stealSlot === i) cls = 'chosen';
+    html += `<button class="slot ${cls}" data-slot="${i}" ${dis ? 'disabled' : ''} aria-label="Wstaw w miejsce ${i + 1}">${cls === 'taken' ? '●' : '+'}</button>`;
     if (i < cards.length) {
       const c = cards[i];
       html += `<div class="card ${c.isNew && S.phase === 'reveal' && c === S.current ? 'new' : ''}"><div class="year">${c.year}</div><div><div class="t">${esc(c.title)}</div><div class="a">${esc(c.artist)}</div></div></div>`;
@@ -2778,56 +2972,151 @@ function render() {
 }
 
 // ---------- zdarzenia ----------
-$('deckOptions').innerHTML = Object.entries(DECKS).map(([id, d]) => `<option value="${id}">${esc(d.name)} (${d.from}–${d.to})</option>`).join('');
-$('source').value = 'mix';
 function renderDeckTiles() {
-  const cur = $('source').value;
   const tiles = Object.entries(DECKS).map(([id, d]) => {
-    return `<button type="button" class="deck" role="radio" aria-checked="${cur === id}" data-deck="${id}">
+    return `<button type="button" class="deck" role="checkbox" aria-checked="${selDecks.includes(id)}" data-deck="${id}">
       <img src="grafiki/talia-${id}.jpg" alt="" width="256" height="256" loading="lazy"><b>${esc(d.name)}</b><small>${d.from}–${d.to} · ${utwory(d.songs.length)}</small></button>`;
   });
-  tiles.push(`<button type="button" class="deck" role="radio" aria-checked="${cur === 'gemini'}" data-deck="gemini">
+  tiles.push(`<button type="button" class="deck" role="checkbox" aria-checked="${isGemini()}" data-deck="gemini">
       <span class="ai" aria-hidden="true">✦</span><b>Własny motyw</b><small>Gemini, wymaga klucza</small></button>`);
   $('deckTiles').innerHTML = tiles.join('');
+  $('geminiBox').classList.toggle('hidden', !isGemini());
 }
-renderDeckTiles();
+// Kliknięcie: zwykła talia dokłada się do wyboru albo z niego znika; Mix i Własny motyw działają osobno.
 $('deckTiles').addEventListener('click', e => {
   const b = e.target.closest('.deck');
   if (!b) return;
-  $('source').value = b.dataset.deck;
-  $('source').dispatchEvent(new Event('change'));
-  renderDeckTiles();
+  const id = b.dataset.deck;
+  if (id === 'gemini' || id === 'mix') selDecks = [id];
+  else {
+    selDecks = selDecks.filter(x => x !== 'mix' && x !== 'gemini');
+    selDecks = selDecks.includes(id) ? selDecks.filter(x => x !== id) : [...selDecks, id];
+    if (!selDecks.length) selDecks = ['mix'];
+  }
+  try { localStorage.setItem(SEL_KEY, JSON.stringify(selDecks)); } catch {}
+  const focus = id;
+  renderDeckTiles(); updateDeckInfo();
+  const again = $('deckTiles').querySelector(`[data-deck="${focus}"]`); if (again) again.focus();
 });
 function updateDeckInfo() {
-  const id = $('source').value;
-  if (!DECKS[id]) { $('deckInfo').innerHTML = ''; return; }
-  const total = DECKS[id].songs.length, fresh = freshCount(id);
-  $('deckInfo').innerHTML = fresh === total
-    ? `Wszystkie ${utwory(total)} w tej talii czekają na pierwsze zagranie.`
-    : `Jeszcze niegrane: ${fresh} z ${total}. Gra najpierw losuje utwory, których jeszcze nie było. <a href="#" id="resetHist" style="color:var(--accent)">Wyczyść historię tej talii</a>`;
+  if (isGemini()) { $('deckInfo').innerHTML = ''; return; }
+  const songs = selectedSongs();
+  const total = songs.length, fresh = freshCount(songs);
+  const ys = songs.map(s => s.year);
+  const names = selDecks.map(id => DECKS[id].name).join(' + ');
+  const head = selDecks.length > 1 ? `<b>${esc(names)}</b>: ${utwory(total)} bez powtórzeń, ${Math.min(...ys)}–${Math.max(...ys)}. ` : '';
+  $('deckInfo').innerHTML = head + (fresh === total
+    ? `Wszystkie ${utwory(total)} czekają na pierwsze zagranie.`
+    : `Jeszcze niegrane: ${fresh} z ${total}. Gra najpierw losuje utwory, których jeszcze nie było. <a href="#" id="resetHist" style="color:var(--accent)">Wyczyść historię ${selDecks.length > 1 ? 'tych talii' : 'tej talii'}</a>`);
   const r = $('resetHist');
   if (r) r.addEventListener('click', ev => {
     ev.preventDefault();
-    const h = loadPlayed(); DECKS[id].songs.forEach(x => h.delete(songKey(x))); savePlayed(h);
+    const h = loadPlayed(); songs.forEach(x => h.delete(songKey(x))); savePlayed(h);
     updateDeckInfo();
   });
 }
-updateDeckInfo();
-$('source').addEventListener('change', e => { $('geminiBox').classList.toggle('hidden', e.target.value !== 'gemini'); updateDeckInfo(); });
+// Tryb gry
+function renderModes() {
+  document.querySelectorAll('#modeTiles .mode').forEach(b => b.setAttribute('aria-checked', String(b.dataset.mode === S.mode)));
+}
+$('modeTiles').addEventListener('click', e => {
+  const b = e.target.closest('.mode');
+  if (!b) return;
+  S.mode = b.dataset.mode;
+  try { localStorage.setItem('pmm_mode', S.mode); } catch {}
+  renderModes();
+});
+// Drużyny
+function renderTeamsToggle() {
+  const on = $('teams').checked;
+  $('teamsHint').classList.toggle('hidden', !on);
+  $('playersLabel').textContent = on ? 'Drużyny (jedna na linię)' : 'Gracze (jeden na linię)';
+  const ta = $('players');
+  const def1 = 'Ania\nBartek', def2 = 'Czerwoni: Ania, Bartek\nNiebiescy: Celina, Darek';
+  if (on && ta.value.trim() === def1) ta.value = def2;
+  if (!on && ta.value.trim() === def2) ta.value = def1;
+}
+$('teams').addEventListener('change', renderTeamsToggle);
+// Zgłoszenia „Zły rok?”
+function renderReports() {
+  const a = loadReports();
+  $('reportsCount').textContent = a.length;
+  $('reportsBox').classList.toggle('hidden', !a.length);
+  $('reportsList').innerHTML = a.map(r => `${esc(r.title)} — ${esc(r.artist)}: w grze ${r.year}${r.suggest ? `, powinno być ${esc(r.suggest)}` : ''}`).join('<br>');
+}
+$('copyReports').addEventListener('click', async () => {
+  const text = 'Pick My Music — błędne lata:\n' + loadReports().map(r => `${r.title}|${r.artist}|${r.year}${r.suggest ? ' → ' + r.suggest : ''}`).join('\n');
+  try { await navigator.clipboard.writeText(text); $('copyReports').textContent = 'Skopiowano ✓'; }
+  catch { prompt('Skopiuj listę:', text); }
+  setTimeout(() => { $('copyReports').textContent = 'Kopiuj listę'; }, 2000);
+});
+$('clearReports').addEventListener('click', () => { saveReports([]); renderReports(); updateDeckInfo(); });
+
 $('startBtn').addEventListener('click', startGame);
 $('cancelGenBtn').addEventListener('click', () => { S.cancelled = true; S.gameId = (S.gameId || 0) + 1; if (S.cancelGen) S.cancelGen(); if (S.onCancel) S.onCancel(null); });
 $('playBtn').addEventListener('click', togglePlay);
 $('confirmBtn').addEventListener('click', confirmPlacement);
-$('skipBtn').addEventListener('click', () => nextTurn(true));
+$('skipBtn').addEventListener('click', () => {
+  if (S.phase !== 'listen') return;
+  const p = S.players[S.turn];
+  if (tokensOn() && !S.audioFailed) { if (p.tokens < 1) return; p.tokens--; }
+  nextTurn(true);
+});
 $('nextBtn').addEventListener('click', () => { S.players.forEach(pl => pl.cards.forEach(c => c.isNew = false)); nextTurn(); });
 $('timeline').addEventListener('click', e => {
   const b = e.target.closest('.slot');
-  if (!b || S.phase !== 'listen') return;
-  S.slot = parseInt(b.dataset.slot, 10);
+  if (!b || b.disabled) return;
+  const i = parseInt(b.dataset.slot, 10);
+  if (S.phase === 'listen') S.slot = i;
+  else if (S.phase === 'steal' && i !== S.slot) S.stealSlot = i;
+  else return;
   render();
 });
+// Żetony: kupno, przejęcie, bonus
+$('tokenBar').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  const p = S.players[S.turn];
+  if (b.id === 'buyBtn' && S.phase === 'listen' && p.tokens >= BUY_COST) { p.tokens -= BUY_COST; reveal(true); }
+  else if (b.id === 'noStealBtn' && S.phase === 'challenge') reveal();
+  else if (b.dataset.steal !== undefined && S.phase === 'challenge') { S.stealer = parseInt(b.dataset.steal, 10); S.stealSlot = null; S.phase = 'steal'; render(); }
+  else if (b.id === 'cancelStealBtn' && S.phase === 'steal') { S.stealer = null; S.stealSlot = null; S.phase = 'challenge'; render(); }
+});
+$('result').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const p = S.players[S.turn], c = S.current;
+  if (b.id === 'bonusYes' && !S.bonusGiven && p.tokens < TOKENS_MAX) {
+    S.bonusGiven = true; p.tokens++; sfx.token();
+    $('bonusBox').innerHTML = `<span class="q">Brawo! +1 żeton dla: ${esc(p.name)} (● ${p.tokens}).</span>`;
+    render();
+  } else if (b.id === 'reportBtn' && c) {
+    $('reportBox').innerHTML = `<label for="repYear" style="margin:0">Jaki powinien być rok? (opcjonalnie)</label>
+      <input id="repYear" inputmode="numeric" maxlength="4" placeholder="np. 1983"><button class="ghost small-btn" id="repSend">Zgłoś</button>`;
+    $('repYear').focus();
+  } else if (b.id === 'repSend' && c) {
+    const sug = ($('repYear').value.match(/\d{4}/) || [''])[0];
+    const a = loadReports().filter(r => songKey(r) !== songKey(c));
+    a.push({ title: c.title, artist: c.artist, year: c.year, suggest: sug });
+    saveReports(a); renderReports();
+    $('reportBox').innerHTML = 'Dzięki! Zapisane — ten utwór nie wróci w tej przeglądarce.';
+  }
+});
+// Dźwięki
+function renderSound() { $('soundBtn').textContent = SFX.on ? '🔊 Dźwięki' : '🔇 Bez dźwięków'; $('soundBtn').setAttribute('aria-pressed', String(SFX.on)); }
+$('soundBtn').addEventListener('click', () => { SFX.on = !SFX.on; try { localStorage.setItem('pmm_sound', SFX.on ? '1' : '0'); } catch {} renderSound(); if (SFX.on) sfx.token(); });
 $('quitBtn').addEventListener('click', () => endGame('Gra przerwana.'));
 $('againBtn').addEventListener('click', () => { S.prefetch = null; updateDeckInfo(); show('setup'); });
+
+// Instalacja jako aplikacja (PWA)
+let installEvt = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('installBtn').classList.remove('hidden'); });
+$('installBtn').addEventListener('click', async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; $('installBtn').classList.add('hidden'); });
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+
+renderDeckTiles(); updateDeckInfo(); renderModes(); renderTeamsToggle(); renderReports(); renderSound();
 </script>
 </body>
 </html>
