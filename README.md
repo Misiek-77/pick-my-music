@@ -54,7 +54,7 @@ Opcjonalnie można wygenerować własną talię na dowolny motyw przez Gemini (w
 - Kilka talii naraz (np. Polskie hity + Rap PL) — bez powtórzeń utworów.
 - Gra pamięta zagrane utwory i w kolejnych rozgrywkach najpierw losuje nowe.
 - Przycisk „Zły rok?” przy odsłoniętym utworze — zgłoszone utwory nie wracają, a listę można skopiować i odesłać do poprawki.
-- Dźwięki i animacje, a dla zwycięzcy fajerwerki, deszcz konfetti i refren „We Are the Champions” (dźwięki można wyłączyć).
+- Ceremonia zwycięstwa: kurtyna i fanfara trąbek, a po jej rozsunięciu huk, fajerwerki, konfetti i refren „We Are the Champions” (dźwięki można wyłączyć).
 - Czas na turę (30, 60 albo 90 s) i tryb łatwy: wystarczy trafić dekadę, a rozmyta okładka podpowiada.
 - W trybie z żetonami dodatkowy żeton za rok co do joty.
 - Klawiatura i pilot TV: Spacja odtwarza, ← → wybierają miejsce, Enter zatwierdza, M wycisza.
@@ -75,3 +75,4 @@ To jedna strona bez serwera i bez instalacji:
 
 - Fragmenty utworów to 30-sekundowe podglądy udostępniane publicznie przez iTunes i Deezer — gra niczego nie przechowuje.
 - Grafiki wygenerowano w Google Gemini.
+- Fanfara przed ogłoszeniem zwycięzcy: „Classic fanfare lick” — fvcalderan, [OpenGameArt](https://opengameart.org/content/classic-fanfare-lick), licencja CC0.

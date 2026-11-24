@@ -226,6 +226,33 @@
   table.stats th, table.stats td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
   table.stats th { color: var(--muted); font-weight: 500; font-size: 12px; }
   .game-stats { margin-top: 10px; display: grid; gap: 2px; }
+  /* Kurtyna przed ogłoszeniem zwycięzcy */
+  .curtain { position: fixed; inset: 0; z-index: 60; overflow: hidden; cursor: pointer; }
+  .curtain .half { position: absolute; top: 0; bottom: 0; width: 51%;
+    background: repeating-linear-gradient(90deg, #4a0810 0, #8d1424 22px, #b3203a 34px, #8d1424 46px, #4a0810 68px);
+    box-shadow: inset 0 -60px 60px rgba(0,0,0,.45), 0 0 40px rgba(0,0,0,.6);
+    transition: transform 1.9s cubic-bezier(.65,0,.3,1); animation: sway 3s ease-in-out infinite; }
+  .curtain .half::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 14px;
+    background: repeating-linear-gradient(90deg, #ffc857 0 6px, #c9952e 6px 9px); box-shadow: 0 -2px 8px rgba(0,0,0,.4); }
+  .curtain .left { left: 0; transform-origin: left center; }
+  .curtain .right { right: 0; transform-origin: right center; animation-delay: -1.5s; }
+  .curtain .valance { position: absolute; top: 0; left: 0; right: 0; height: 11vh; min-height: 60px; z-index: 2;
+    background: repeating-radial-gradient(ellipse at 50% -40%, #b3203a 0 30px, #6d0e1a 30px 34px), #8d1424;
+    border-bottom: 8px solid #ffc857; box-shadow: 0 8px 24px rgba(0,0,0,.55); transition: transform 1.2s ease-in .5s; }
+  .curtain-text { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; text-align: center; padding: 0 16px;
+    font-family: Fraunces, serif; font-weight: 700; font-size: clamp(28px, 7vw, 64px); color: #ffc857;
+    text-shadow: 0 3px 0 #6d0e1a, 0 0 30px rgba(255,200,87,.55); animation: glow 1s ease-in-out infinite alternate; transition: opacity .4s; }
+  .curtain.open .left { transform: translateX(-104%) scaleX(.85); animation: none; }
+  .curtain.open .right { transform: translateX(104%) scaleX(.85); animation: none; }
+  .curtain.open .valance { transform: translateY(-115%); }
+  .curtain.open .curtain-text { opacity: 0; }
+  @keyframes sway { 50% { transform: scaleX(.985) skewY(.3deg); } }
+  @keyframes glow { to { text-shadow: 0 3px 0 #6d0e1a, 0 0 50px rgba(255,200,87,.95); transform: scale(1.04); } }
+  .flash { position: fixed; inset: 0; z-index: 55; pointer-events: none; background: radial-gradient(circle, #fff 0, rgba(255,240,200,.85) 35%, rgba(255,200,87,0) 75%); animation: flash .7s ease-out forwards; }
+  @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
+  .shake { animation: shakeAll .5s; }
+  @keyframes shakeAll { 20% { transform: translate(-6px, 3px); } 40% { transform: translate(5px, -4px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(2px, -1px); } }
+  @media (prefers-reduced-motion: reduce) { .curtain .half, .curtain .valance { transition-duration: .01s; animation: none; } .curtain-text { animation: none; } .flash, .shake { animation: none; } }
   #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
   @media (max-width: 640px) { .modes { grid-template-columns: 1fr; } .extra { justify-content: center; } }
   /* Telefon, ekran gry: płyta obok nazwy gracza, przyciski pod spodem — żeby oś czasu była widoczna bez przewijania */
@@ -422,6 +449,12 @@ Bartek</textarea>
   </section>
 </div>
 <canvas id="confetti" class="hidden" aria-hidden="true"></canvas>
+<div id="curtain" class="curtain hidden" aria-hidden="true">
+  <div class="half left"></div><div class="half right"></div>
+  <div class="valance"></div>
+  <div class="curtain-text">Zwycięzcą zostaje…</div>
+</div>
+<div id="flash" class="flash hidden" aria-hidden="true"></div>
 
 <script>
 // Gotowe talie. Rok = pierwsze wydanie utworu (singiel lub album, co było wcześniej).
@@ -2997,7 +3030,7 @@ const sfx = {
 
 // ---------- świętowanie zwycięzcy: fajerwerki, armatki z konfetti i deszcz konfetti ----------
 // Jedna animacja na płótnie nad całą stroną, ok. 9 s (tyle, co fraza z piosenki).
-function confetti() {
+function confetti(big = false) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const cv = $('confetti'), ctx = cv.getContext('2d'), dpr = devicePixelRatio || 1;
   cv.classList.remove('hidden');
@@ -3028,6 +3061,8 @@ function confetti() {
     }
     tone([[180 + Math.random() * 120, .12, 'triangle', .03]]); // ciche „puf”
   };
+  // Otwarcie ceremonii: trzy duże wybuchy naraz.
+  if (big) [[.25, .3], [.5, .2], [.75, .3]].forEach(([fx, fy], i) => setTimeout(() => { burst(W * fx, H * fy, pick(colors)); burst(W * fx, H * fy, pick(colors)); }, i * 120));
   let nextRocket = t0 + 150;
   (function frame(t) {
     const el = t - t0;
@@ -3439,6 +3474,83 @@ async function nextTurn(samePlayer = false) {
   prefetchNext();
 }
 
+// ---------- ceremonia zwycięstwa: kurtyna + trąbki → rozsunięcie, huk, piosenka, fajerwerki ----------
+// Trąbki: nagranie „Classic fanfare lick” (fvcalderan, OpenGameArt, CC0) z pliku dzwieki/fanfara.mp3.
+// Gdy plik się nie wczyta, zastępczo gra fanfara syntezowana w przeglądarce.
+const fanfareAudio = new Audio('dzwieki/fanfara.mp3');
+fanfareAudio.preload = 'auto';
+function trumpets(onEnd) {
+  if (!SFX.on) return () => {};
+  let stopped = false, stopSynth = null;
+  fanfareAudio.currentTime = 0; fanfareAudio.muted = false; fanfareAudio.volume = 1;
+  fanfareAudio.onended = () => { if (!stopped && onEnd) onEnd(); };
+  fanfareAudio.play().catch(() => { if (!stopped) stopSynth = synthTrumpets(); });
+  return () => { stopped = true; fanfareAudio.pause(); if (stopSynth) stopSynth(); };
+}
+// Zapasowa fanfara syntezowana (piła + filtr = „blaszane” brzmienie, lekkie vibrato).
+function synthTrumpets() {
+  if (!SFX.on) return () => {};
+  try {
+    const c = SFX.ctx || (SFX.ctx = new (window.AudioContext || window.webkitAudioContext)());
+    if (c.state === 'suspended') c.resume();
+    const master = c.createGain(); master.gain.value = 0.22; master.connect(c.destination);
+    const t0 = c.currentTime + 0.05;
+    // [półton względem C5, start (s), długość (s)] — dwie trąbki w tercji
+    const C5 = 523.25, f = st => C5 * Math.pow(2, st / 12);
+    const melody = [[-5,0,.16],[-5,.2,.16],[-5,.4,.16],[0,.6,.5],[-5,1.15,.16],[0,1.35,.16],[4,1.55,.6],[0,2.2,.16],[4,2.4,.16],[7,2.6,.75]];
+    const nodes = [];
+    for (const [st, s, len] of melody) for (const [shift, vol] of [[0, 1], [-3, .6]]) {
+      const o = c.createOscillator(), o2 = c.createOscillator(), fl = c.createBiquadFilter(), g = c.createGain();
+      const lfo = c.createOscillator(), lg = c.createGain();
+      o.type = 'sawtooth'; o2.type = 'square'; o.frequency.value = f(st + shift); o2.frequency.value = f(st + shift) * 1.003;
+      lfo.frequency.value = 5.5; lg.gain.value = len > .3 ? 4 : 0; lfo.connect(lg); lg.connect(o.frequency); lg.connect(o2.frequency);
+      fl.type = 'lowpass'; fl.Q.value = 2;
+      const a = t0 + s;
+      fl.frequency.setValueAtTime(500, a); fl.frequency.linearRampToValueAtTime(2600, a + .06); fl.frequency.linearRampToValueAtTime(1600, a + len);
+      g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(.5 * vol, a + .04); g.gain.setValueAtTime(.42 * vol, a + len - .05); g.gain.linearRampToValueAtTime(0, a + len + .06);
+      o.connect(fl); o2.connect(fl); fl.connect(g); g.connect(master);
+      for (const n of [o, o2, lfo]) { n.start(a); n.stop(a + len + .1); nodes.push(n); }
+    }
+    // stop: szybkie wyciszenie (kurtyna się rozsuwa)
+    return () => { try { master.gain.setTargetAtTime(0, c.currentTime, .08); } catch {} };
+  } catch { return () => {}; }
+}
+// Huk wybuchu: szum przez filtr dolnoprzepustowy z szybkim zanikiem.
+function boom() {
+  if (!SFX.on) return;
+  try {
+    const c = SFX.ctx, len = 1.2, b = c.createBuffer(1, c.sampleRate * len, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5);
+    const src = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = b; fl.type = 'lowpass'; fl.frequency.setValueAtTime(900, c.currentTime); fl.frequency.exponentialRampToValueAtTime(120, c.currentTime + .8);
+    g.gain.value = .9; src.connect(fl); fl.connect(g); g.connect(c.destination); src.start();
+    tone([[70, .5, 'sine', .35]]); // niskie „bum” pod spodem
+  } catch {}
+}
+let ceremony = null;
+function winCeremony() {
+  const cur = $('curtain');
+  cur.classList.remove('hidden', 'open');
+  // Kurtyna rusza, gdy fanfara się skończy (albo najpóźniej po 4 s).
+  const stopTrumpets = trumpets(() => setTimeout(() => open(), 250));
+  let opened = false;
+  const open = () => {
+    if (opened) return; opened = true;
+    clearTimeout(ceremony);
+    stopTrumpets();
+    cur.classList.add('open');
+    // wybuch: błysk, drgnięcie ekranu, huk — i od razu piosenka z fajerwerkami
+    const fl = $('flash'); fl.classList.remove('hidden'); fl.style.animation = 'none'; void fl.offsetWidth; fl.style.animation = '';
+    setTimeout(() => fl.classList.add('hidden'), 750);
+    const wr = document.querySelector('.wrap'); wr.classList.add('shake'); setTimeout(() => wr.classList.remove('shake'), 550);
+    boom(); playWinSong(); confetti(true);
+    setTimeout(() => cur.classList.add('hidden'), 2100);
+  };
+  cur.onclick = open;
+  ceremony = setTimeout(open, 4000);
+}
+function endCeremony() { clearTimeout(ceremony); $('curtain').classList.add('hidden'); $('flash').classList.add('hidden'); }
+
 // ---------- piosenka zwycięzcy: „We Are the Champions” (30-sekundowy fragment z iTunes / Deezera) ----------
 const WIN_SONG = { title: 'We Are the Champions', artist: 'Queen' };
 const winAudio = new Audio();
@@ -3460,6 +3572,9 @@ function unlockWinAudio() {
     for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
     winAudio.src = URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
     winAudio.play().then(() => winAudio.pause()).catch(() => {});
+    // to samo dla fanfary: cichy start i pauza w chwili dotknięcia
+    fanfareAudio.muted = true;
+    fanfareAudio.play().then(() => { fanfareAudio.pause(); fanfareAudio.currentTime = 0; fanfareAudio.muted = false; }).catch(() => { fanfareAudio.muted = false; });
   } catch {}
 }
 function stopWinSong() { winAudio.pause(); $('winMusicBtn').classList.add('hidden'); }
@@ -3611,7 +3726,7 @@ function endGame(reason) {
     `<div><b>${esc(p.name)}</b>: ${p.g.hits}/${p.g.tries} trafień (${pct(p.g.hits, p.g.tries)}), najdłuższa seria ${p.g.best}</div>`).join('');
   renderStats();
   show('endView');
-  if (finished || !reason) { playWinSong(); confetti(); }
+  if (finished || !reason) winCeremony();
 }
 
 // ---------- widok ----------
@@ -3830,7 +3945,7 @@ $('result').addEventListener('click', e => {
 function renderSound() { $('soundBtn').textContent = SFX.on ? '🔊 Dźwięki' : '🔇 Bez dźwięków'; $('soundBtn').setAttribute('aria-pressed', String(SFX.on)); }
 $('soundBtn').addEventListener('click', () => { SFX.on = !SFX.on; try { localStorage.setItem('pmm_sound', SFX.on ? '1' : '0'); } catch {} renderSound(); if (SFX.on) sfx.token(); });
 $('quitBtn').addEventListener('click', () => endGame('Gra przerwana.'));
-$('againBtn').addEventListener('click', () => { stopWinSong(); S.prefetch = null; updateDeckInfo(); show('setup'); });
+$('againBtn').addEventListener('click', () => { endCeremony(); stopWinSong(); S.prefetch = null; updateDeckInfo(); show('setup'); });
 $('winMusicBtn').addEventListener('click', stopWinSong);
 
 // Instalacja jako aplikacja (PWA)
