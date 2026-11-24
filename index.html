@@ -3518,7 +3518,8 @@ function render() {
 }
 
 // ---------- zdarzenia ----------
-const DECK_ICONS = { dpolo: '🪩', s20: '🎧', euro: '🎤', film: '🎬', kids: '🧸' };
+// Ikony dla talii, które nie mają jeszcze grafiki w grafiki/talia-<id>.jpg (wszystkie obecne talie mają).
+const DECK_ICONS = {};
 function renderDeckTiles() {
   const tiles = Object.entries(DECKS).map(([id, d]) => {
     // Talie bez własnej grafiki dostają ikonę.
