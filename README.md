@@ -30,16 +30,21 @@ Zaznacz „Gramy w drużynach” i wpisz np. `Czerwoni: Ania, Bartek`. W każdej
 
 | Talia | Utworów |
 |---|---|
-| Mix: wszystkie talie razem | 1877 |
+| Mix: wszystkie talie razem | 2298 |
 | Polskie hity | 218 |
 | Złote lata 60. i 70. | 158 |
 | Lata 80. | 184 |
 | Lata 90. | 193 |
 | Lata 2000. | 199 |
-| 2010 i później | 335 |
+| Lata 2010. | 197 |
+| Lata 2020. | 362 |
 | Rock | 251 |
 | Rap i trap USA | 172 |
 | Rap i trap PL | 208 |
+| Disco polo | 97 |
+| Eurowizja | 46 |
+| Soundtracki filmowe | 50 |
+| Bajki i seriale | 32 |
 
 Lata wydania zostały sprawdzone w MusicBrainz, Deezerze i iTunes — szczegóły w [audyt-talii.md](audyt-talii.md).
 Opcjonalnie można wygenerować własną talię na dowolny motyw przez Gemini (wymaga własnego klucza API, który zostaje tylko w przeglądarce).
@@ -50,6 +55,9 @@ Opcjonalnie można wygenerować własną talię na dowolny motyw przez Gemini (w
 - Gra pamięta zagrane utwory i w kolejnych rozgrywkach najpierw losuje nowe.
 - Przycisk „Zły rok?” przy odsłoniętym utworze — zgłoszone utwory nie wracają, a listę można skopiować i odesłać do poprawki.
 - Dźwięki, animacje i konfetti dla zwycięzcy (dźwięki można wyłączyć).
+- Czas na turę (30, 60 albo 90 s) i tryb łatwy: wystarczy trafić dekadę, a rozmyta okładka podpowiada.
+- W trybie z żetonami dodatkowy żeton za rok co do joty.
+- Klawiatura i pilot TV: Spacja odtwarza, ← → wybierają miejsce, Enter zatwierdza, M wycisza.
 - Instalacja jak aplikacja (PWA): na telefonie „Dodaj do ekranu początkowego” daje pełny ekran i własną ikonę.
 - Dźwięk z iTunes, a gdy nie odpowiada — z Deezera (tylko oryginalne nagrania, bez coverów i wersji live).
 - Układ dopasowany do telefonu i telewizora (tryb TV powiększa grę na dużym ekranie, nawigacja pilotem).

@@ -212,6 +212,15 @@
   @keyframes shake { 0%,100% { transform: none; } 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
   .winner .trophy { animation: pop .7s ease-out; }
   @media (prefers-reduced-motion: reduce) { .card.new, .result, .result.bad, .winner .trophy { animation: none; } }
+  .who .timer { font-family: Inter, system-ui, sans-serif; font-size: 15px; font-weight: 600; color: var(--accent-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; vertical-align: middle; white-space: nowrap; }
+  .who .timer.low { color: var(--bad); border-color: var(--bad); animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .55; } }
+  .disc .label.blurred { filter: blur(5px) saturate(1.2); }
+  .guess { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; color: var(--text); }
+  .guess input { width: 96px; padding: 7px 10px; }
+  .keys { font-size: 13px; color: var(--muted); margin-top: 12px; text-align: center; }
+  .keys kbd { font: 600 12px Inter, system-ui, sans-serif; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; color: var(--text); background: var(--panel-2); }
+  @media (hover: none) { .keys { display: none; } }
   #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
   @media (max-width: 640px) { .modes { grid-template-columns: 1fr; } .extra { justify-content: center; } }
 </style>
@@ -251,7 +260,17 @@ Bartek</textarea>
             <option value="10" selected>10 (pełna gra)</option>
           </select>
         </div>
+        <div>
+          <label for="timeLimit">Czas na turę</label>
+          <select id="timeLimit">
+            <option value="0" selected>Bez limitu</option>
+            <option value="30">30 s</option>
+            <option value="60">60 s</option>
+            <option value="90">90 s</option>
+          </select>
+        </div>
       </div>
+      <label class="switch"><input type="checkbox" id="easy"> Tryb łatwy: wystarczy trafić dekadę, a na płycie widać rozmytą okładkę</label>
 
       <div id="geminiBox" class="hidden">
         <label for="theme">Motyw talii</label>
@@ -283,7 +302,10 @@ Bartek</textarea>
           <li><b>1 żeton</b> — przejęcie: gdy rywal wybierze miejsce, wskazujesz inne na <i>jego</i> osi. Jeśli on się myli, a ty masz rację, karta trafia do ciebie;</li>
           <li><b>3 żetony</b> — kupno karty: obecny utwór od razu trafia na twoją oś we właściwe miejsce.</li>
         </ul>
-        <p class="sub">Przy remisie w kartach wygrywa ten, kto ma więcej żetonów.</p>
+        <p class="sub">Przy remisie w kartach wygrywa ten, kto ma więcej żetonów. Dodatkowy żeton dostaje ten, kto przed zatwierdzeniem wpisze rok co do joty.</p>
+        <p class="sub"><b>Czas na turę.</b> Gdy czas minie, wybrane miejsce zostaje zatwierdzone. Bez wybranego miejsca karta przepada.</p>
+        <p class="sub"><b>Tryb łatwy.</b> Wystarczy trafić dekadę: utwór z 1983 można położyć zarówno przed, jak i za kartą z 1987. Na płycie widać rozmytą okładkę jako podpowiedź.</p>
+        <p class="sub"><b>Klawiatura i pilot TV.</b> Spacja odtwarza, strzałki ← → wybierają miejsce, Enter zatwierdza albo przechodzi dalej, M włącza i wyłącza dźwięki.</p>
       </details>
       <details>
         <summary>Zainstaluj jak aplikację</summary>
@@ -327,7 +349,7 @@ Bartek</textarea>
           <div class="disc" id="disc"><div class="label" id="discLabel">?</div></div>
         </button>
         <div>
-          <p class="who" id="who"></p>
+          <p class="who"><span id="who"></span> <span class="timer hidden" id="timer" role="timer" aria-live="off"></span></p>
           <p class="status" id="status"></p>
           <div class="actions">
             <button id="confirmBtn" disabled>Zatwierdź miejsce</button>
@@ -349,6 +371,7 @@ Bartek</textarea>
     </div>
 
     <div class="actions"><button class="ghost" id="quitBtn">Zakończ grę</button><button class="ghost icon-btn" id="soundBtn" aria-pressed="true">🔊 Dźwięki</button></div>
+    <p class="keys">Klawiatura i pilot: <kbd>Spacja</kbd> odtwórz · <kbd>←</kbd> <kbd>→</kbd> wybierz miejsce · <kbd>Enter</kbd> zatwierdź / dalej · <kbd>M</kbd> dźwięki</p>
   </section>
 
   <!-- KONIEC -->
@@ -1376,7 +1399,7 @@ Call on Me|Eric Prydz|2004
 Everytime We Touch|Cascada|2005
 Miracle|Cascada|2004
 Bad Boy|Cascada|2004`],
-  s10: ['2010 i później', `
+  s10: ['Lata 2010.', `
 Rolling in the Deep|Adele|2010
 Firework|Katy Perry|2010
 Party Rock Anthem|LMFAO|2011
@@ -1411,16 +1434,6 @@ bad guy|Billie Eilish|2019
 Blinding Lights|The Weeknd|2019
 Dance Monkey|Tones and I|2019
 Watermelon Sugar|Harry Styles|2019
-Levitating|Dua Lipa|2020
-Heat Waves|Glass Animals|2020
-drivers license|Olivia Rodrigo|2021
-Stay|The Kid LAROI|2021
-Bad Habits|Ed Sheeran|2021
-As It Was|Harry Styles|2022
-Anti-Hero|Taylor Swift|2022
-Unholy|Sam Smith|2022
-Flowers|Miley Cyrus|2023
-Espresso|Sabrina Carpenter|2024
 Dynamite|Taio Cruz|2010
 Only Girl (In the World)|Rihanna|2010
 Just the Way You Are|Bruno Mars|2010
@@ -1463,65 +1476,20 @@ Someone You Loved|Lewis Capaldi|2018
 7 rings|Ariana Grande|2019
 Señorita|Shawn Mendes|2019
 Don't Start Now|Dua Lipa|2019
-Save Your Tears|The Weeknd|2020
-Mood|24kGoldn|2020
-MONTERO (Call Me By Your Name)|Lil Nas X|2021
-good 4 u|Olivia Rodrigo|2021
-Shivers|Ed Sheeran|2021
-About Damn Time|Lizzo|2022
-Calm Down|Rema|2022
-Kill Bill|SZA|2022
-vampire|Olivia Rodrigo|2023
-Paint The Town Red|Doja Cat|2023
-Houdini|Dua Lipa|2023
-Lose Control|Teddy Swims|2023
-Beautiful Things|Benson Boone|2024
-Too Sweet|Hozier|2024
-BIRDS OF A FEATHER|Billie Eilish|2024
-APT.|ROSÉ|2024
-Die With A Smile|Lady Gaga|2024
-Azizam|Ed Sheeran|2025
 I See Fire|Ed Sheeran|2013
 Galway Girl|Ed Sheeran|2017
-The Fate of Ophelia|Taylor Swift|2025
-Patient Zero|Taylor Swift|2026
 Cruel Summer|Taylor Swift|2019
-Eldest Daughter|Taylor Swift|2025
-I Just Might|Bruno Mars|2026
-On My Soul|Bruno Mars|2026
-Leave The Door Open|Bruno Mars|2021
 Marry You|Bruno Mars|2010
 Kiss It Better|Rihanna|2016
 Needed Me|Rihanna|2016
 Part Of Me|Katy Perry|2012
-Popular (From The Idol Vol. 1 Music from the HBO Original Series)|The Weeknd|2023
-One Of The Girls|The Weeknd|2023
-Go Easy|Dua Lipa|2026
-Training Season|Dua Lipa|2024
-Love Again|Dua Lipa|2020
-Break My Heart|Dua Lipa|2020
 watch|Billie Eilish|2017
-WILDFLOWER|Billie Eilish|2024
-THE GREATEST|Billie Eilish|2024
-LUNCH|Billie Eilish|2024
-hate that i made you love me|Ariana Grande|2026
-petal|Ariana Grande|2026
 Love Me Harder|Ariana Grande|2014
-Coming Up Roses|Harry Styles|2026
 Sign of the Times|Harry Styles|2017
 Falling|Harry Styles|2019
-Satellite|Harry Styles|2022
-stupid song|Olivia Rodrigo|2026
-expectations|Olivia Rodrigo|2026
-take me home (4 christmas)|Olivia Rodrigo|2026
-the cure|Olivia Rodrigo|2026
-DAISIES|Justin Bieber|2025
 Beauty And A Beat|Justin Bieber|2012
 Maria|Justin Bieber|2012
-Sharks|Imagine Dragons|2022
-Follow You|Imagine Dragons|2021
 Adventure of a Lifetime|Coldplay|2015
-WE PRAY|Coldplay|2024
 The Nights|Avicii|2014
 Waiting For Love|Avicii|2015
 Hey Brother|Avicii|2013
@@ -1533,98 +1501,53 @@ Summer|Calvin Harris|2014
 Outside|Calvin Harris|2014
 My Way|Calvin Harris|2016
 Before You Go|Lewis Capaldi|2019
-Forget Me|Lewis Capaldi|2022
-Pointless|Lewis Capaldi|2022
 Stitches|Shawn Mendes|2015
 In My Blood|Shawn Mendes|2018
-Why Why Why|Shawn Mendes|2024
-Sweet Like Candy|Camila Cabello|2026
 Never Be the Same|Camila Cabello|2018
-Bam Bam|Camila Cabello|2022
-Cooped Up|Post Malone|2022
 Better Now|Post Malone|2018
-Kiss Me More|Doja Cat|2021
-Agora Hills|Doja Cat|2023
-Jealous Type|Doja Cat|2025
-Prisoner|Miley Cyrus|2020
-Hold My Hand|Lady Gaga|2022
 Rescue Me|OneRepublic|2019
-Need Your Love|OneRepublic|2026
 Team|Lorde|2013
 Ribs|Lorde|2013
 A World Alone|Lorde|2013
 Work Song|Hozier|2014
 Someone New|Hozier|2014
 Talk|Hozier|2019
-Bad Child|Tones and I|2020
-Ur So F**kInG cOoL|Tones and I|2020
-Mercy|Tones and I|2026
-Fly Away|Tones and I|2020
 Take A Slice|Glass Animals|2016
 Toes|Glass Animals|2014
 The Other Side Of Paradise|Glass Animals|2016
 Pork Soda|Glass Animals|2016
-Taste|Sabrina Carpenter|2024
-A Nonsense Christmas|Sabrina Carpenter|2022
-Manchild|Sabrina Carpenter|2025
 Thumbs|Sabrina Carpenter|2016
-Good Luck, Babe!|Chappell Roan|2024
-HOT TO GO!|Chappell Roan|2023
-Cry|Benson Boone|2024
-Mystical Magical|Benson Boone|2025
-In The Stars|Benson Boone|2022
-Mr. Know It All|Teddy Swims|2026
-The Door|Teddy Swims|2023
-Bad Dreams|Teddy Swims|2024
-Perfect Man|Teddy Swims|2026
-Snooze|SZA|2022
-Used|SZA|2022
-Open Arms|SZA|2022
-Good Days|SZA|2020
 Morirò da Re|Måneskin|2018
 First Time|Kygo|2017
-Whatever|Kygo|2024
 Stole the Show|Kygo|2015
-This Dream Of You|Martin Garrix|2026
-Repeat It|Martin Garrix|2026
 In the Name of Love|Martin Garrix|2016
 High On Life|Martin Garrix|2018
-Fast Emotion|Zara Larsson|2026
-Midnight Sun|Zara Larsson|2025
 Ruin My Life|Zara Larsson|2018
 Rather Be|Clean Bandit|2014
 Symphony|Clean Bandit|2017
 Solo|Clean Bandit|2018
 Rockabye|Clean Bandit|2016
 Let You Love Me|Rita Ora|2018
-The Girl I Used to Be|Rita Ora|2026
 Anywhere|Rita Ora|2017
 Hold My Hand|Jess Glynne|2015
 Take Me Home|Jess Glynne|2015
 Close To Me|Ellie Goulding|2018
 Still Falling For You (From "Bridget Jones's Baby")|Ellie Goulding|2016
-I Went Hunting|George Ezra|2022
 Budapest|George Ezra|2013
 Leaving It Up to You|George Ezra|2014
-Green Green Grass|George Ezra|2022
 We Don't Talk Anymore|Charlie Puth|2016
 Attention|Charlie Puth|2017
 Marvin Gaye|Charlie Puth|2015
 How Long|Charlie Puth|2017
-Could Have Been Me|Halsey|2021
 Gasoline|Halsey|2015
 Colors|Halsey|2015
 FRIENDS|Marshmello|2018
-Leave Before You Love Me|Marshmello|2021
 Spotlight|Marshmello|2018
 Happier (Stripped)|Marshmello|2018
 Roses|The Chainsmokers|2015
-Take What You Need|The Chainsmokers|2026
-Love Is Kind|The Chainsmokers|2026
 Light It Up|Major Lazer|2015
 Powerful|Major Lazer|2015
 Kissing Strangers|DNCE|2017
-Move|DNCE|2022
 Christmas Without You|DNCE|2017
 Ride|Twenty One Pilots|2015
 Heathens|Twenty One Pilots|2016
@@ -1632,74 +1555,38 @@ Doubt|Twenty One Pilots|2015
 Feel It Still|Portugal. The Man|2017
 So Young|Portugal. The Man|2017
 Someday Believers|Portugal. The Man|2013
-Denali|Portugal. The Man|2025
 Imagination|Foster the People|2019
 Style|Foster the People|2019
 Houdini|Foster the People|2011
-Somebody|Gotye|2024
 State Of The Art|Gotye|2011
 I Feel Better|Gotye|2011
 Freedom|Pharrell Williams|2015
 Hug Me|Pharrell Williams|2017
-Down In Atlanta|Pharrell Williams|2022
-Double Life (From "Despicable Me 4")|Pharrell Williams|2024
 Give Life Back to Music|Daft Punk|2013
 Within|Daft Punk|2013
 Nothing Breaks Like a Heart|Mark Ronson|2018
-Suzanne|Mark Ronson|2025
 Gold|Macklemore & Ryan Lewis|2012
 Starting Over|Macklemore & Ryan Lewis|2012
 White Walls|Macklemore & Ryan Lewis|2012
-AM I DREAMING|Lil Nas X|2021
-DONT WANT IT|Lil Nas X|2021
-HOTBOX|Lil Nas X|2025
-J CHRIST|Lil Nas X|2024
-Churchill Downs|Jack Harlow|2022
-Dua Lipa|Jack Harlow|2022
-Parent Trap|Jack Harlow|2022
-Lovin On Me|Jack Harlow|2023
-abcdefu (angrier)|GAYLE|2021
-clementine|GAYLE|2026
-bite the bullet|GAYLE|2026
-clara|GAYLE|2026
-Housewife|Tate McRae|2026
-Just Keep Watching (From F1® The Movie)|Tate McRae|2025
-Sports car|Tate McRae|2025
-Alter Ego|Doechii|2024
-CATFISH|Doechii|2024
-What It Is (Block Boy)|Doechii|2023
 LA CANCIÓN|J Balvin|2019
-In Da Getto|J Balvin|2021
-Tonto|J Balvin|2026
-Me Despido|Luis Fonsi|2026
-CAMBIARÉ|Luis Fonsi|2026
 Imposible|Luis Fonsi|2018
-Dolce|Luis Fonsi|2022
 Teenage Dream|Katy Perry|2010
 California Gurls|Katy Perry|2010
 Bon Appétit|Katy Perry|2017
 Earned It (Fifty Shades Of Grey)|The Weeknd|2014
-São Paulo|The Weeknd|2024
 Into You|Ariana Grande|2016
 Confident|Justin Bieber|2013
 Whatever It Takes|Imagine Dragons|2017
 Warriors|Imagine Dragons|2014
-I'm Good (Blue)|David Guetta|2022
 Bruises|Lewis Capaldi|2017
 Mercy|Shawn Mendes|2016
-Don't Go Yet|Camila Cabello|2021
 Hollywood's Bleeding|Post Malone|2019
-Bass Persuades|Miley Cyrus|2026
 Applause|Lady Gaga|2013
 Cold|Maroon 5|2017
 It Was Always You|Maroon 5|2014
 If I Lose Myself (Alesso vs OneRepublic)|OneRepublic|2013
-Pink Pony Club|Chappell Roan|2020
-Sorry I'm Here For Someone Else|Benson Boone|2025
-HONEY (ARE U COMING?)|Måneskin|2021
 L'altra dimensione|Måneskin|2018
 It Ain't Me|Kygo|2017
-Can't Tame Her|Zara Larsson|2023
 Mountain Song|Alan Walker|2017
 I'll Be There|Jess Glynne|2018
 Don't Be so Hard on Yourself|Jess Glynne|2015
@@ -1708,9 +1595,7 @@ Bad At Love|Halsey|2017
 Don't Let Me Down|The Chainsmokers|2016
 Que Calor|Major Lazer|2018
 Cake By The Ocean|DNCE|2015
-Drag Path|Twenty One Pilots|2025
 Don't Stop (Color on the Walls)|Foster the People|2011
-It's ok I'm ok|Tate McRae|2024
 Mi Gente|J Balvin|2017`],
   rock: ['Rock', `
 Johnny B. Goode|Chuck Berry|1958
@@ -2345,7 +2230,599 @@ Rap to nie zabawa już|Abradab|2005
 Szydło|Abradab|2020
 JA to WIEM|Liroy|2025
 NONSTOPER|Liroy|2025
-Czarny Śląsk|Kaliber 44|2023`]
+Czarny Śląsk|Kaliber 44|2023`],
+  s20: ['Lata 2020.', `
+Levitating|Dua Lipa|2020
+Heat Waves|Glass Animals|2020
+drivers license|Olivia Rodrigo|2021
+Stay|The Kid LAROI|2021
+Bad Habits|Ed Sheeran|2021
+As It Was|Harry Styles|2022
+Anti-Hero|Taylor Swift|2022
+Unholy|Sam Smith|2022
+Flowers|Miley Cyrus|2023
+Espresso|Sabrina Carpenter|2024
+Save Your Tears|The Weeknd|2020
+Mood|24kGoldn|2020
+MONTERO (Call Me By Your Name)|Lil Nas X|2021
+good 4 u|Olivia Rodrigo|2021
+Shivers|Ed Sheeran|2021
+About Damn Time|Lizzo|2022
+Calm Down|Rema|2022
+Kill Bill|SZA|2022
+vampire|Olivia Rodrigo|2023
+Paint The Town Red|Doja Cat|2023
+Houdini|Dua Lipa|2023
+Lose Control|Teddy Swims|2023
+Beautiful Things|Benson Boone|2024
+Too Sweet|Hozier|2024
+BIRDS OF A FEATHER|Billie Eilish|2024
+APT.|ROSÉ|2024
+Die With A Smile|Lady Gaga|2024
+Azizam|Ed Sheeran|2025
+The Fate of Ophelia|Taylor Swift|2025
+Patient Zero|Taylor Swift|2026
+Eldest Daughter|Taylor Swift|2025
+I Just Might|Bruno Mars|2026
+On My Soul|Bruno Mars|2026
+Leave The Door Open|Bruno Mars|2021
+Popular (From The Idol Vol. 1 Music from the HBO Original Series)|The Weeknd|2023
+One Of The Girls|The Weeknd|2023
+Go Easy|Dua Lipa|2026
+Training Season|Dua Lipa|2024
+Love Again|Dua Lipa|2020
+Break My Heart|Dua Lipa|2020
+WILDFLOWER|Billie Eilish|2024
+THE GREATEST|Billie Eilish|2024
+LUNCH|Billie Eilish|2024
+hate that i made you love me|Ariana Grande|2026
+petal|Ariana Grande|2026
+Coming Up Roses|Harry Styles|2026
+Satellite|Harry Styles|2022
+stupid song|Olivia Rodrigo|2026
+expectations|Olivia Rodrigo|2026
+take me home (4 christmas)|Olivia Rodrigo|2026
+the cure|Olivia Rodrigo|2026
+DAISIES|Justin Bieber|2025
+Sharks|Imagine Dragons|2022
+Follow You|Imagine Dragons|2021
+WE PRAY|Coldplay|2024
+Forget Me|Lewis Capaldi|2022
+Pointless|Lewis Capaldi|2022
+Why Why Why|Shawn Mendes|2024
+Sweet Like Candy|Camila Cabello|2026
+Bam Bam|Camila Cabello|2022
+Cooped Up|Post Malone|2022
+Kiss Me More|Doja Cat|2021
+Agora Hills|Doja Cat|2023
+Jealous Type|Doja Cat|2025
+Prisoner|Miley Cyrus|2020
+Hold My Hand|Lady Gaga|2022
+Need Your Love|OneRepublic|2026
+Bad Child|Tones and I|2020
+Ur So F**kInG cOoL|Tones and I|2020
+Mercy|Tones and I|2026
+Fly Away|Tones and I|2020
+Taste|Sabrina Carpenter|2024
+A Nonsense Christmas|Sabrina Carpenter|2022
+Manchild|Sabrina Carpenter|2025
+Good Luck, Babe!|Chappell Roan|2024
+HOT TO GO!|Chappell Roan|2023
+Cry|Benson Boone|2024
+Mystical Magical|Benson Boone|2025
+In The Stars|Benson Boone|2022
+Mr. Know It All|Teddy Swims|2026
+The Door|Teddy Swims|2023
+Bad Dreams|Teddy Swims|2024
+Perfect Man|Teddy Swims|2026
+Snooze|SZA|2022
+Used|SZA|2022
+Open Arms|SZA|2022
+Good Days|SZA|2020
+Whatever|Kygo|2024
+This Dream Of You|Martin Garrix|2026
+Repeat It|Martin Garrix|2026
+Fast Emotion|Zara Larsson|2026
+Midnight Sun|Zara Larsson|2025
+The Girl I Used to Be|Rita Ora|2026
+I Went Hunting|George Ezra|2022
+Green Green Grass|George Ezra|2022
+Could Have Been Me|Halsey|2021
+Leave Before You Love Me|Marshmello|2021
+Take What You Need|The Chainsmokers|2026
+Love Is Kind|The Chainsmokers|2026
+Move|DNCE|2022
+Denali|Portugal. The Man|2025
+Somebody|Gotye|2024
+Down In Atlanta|Pharrell Williams|2022
+Double Life (From "Despicable Me 4")|Pharrell Williams|2024
+Suzanne|Mark Ronson|2025
+AM I DREAMING|Lil Nas X|2021
+DONT WANT IT|Lil Nas X|2021
+HOTBOX|Lil Nas X|2025
+J CHRIST|Lil Nas X|2024
+Churchill Downs|Jack Harlow|2022
+Dua Lipa|Jack Harlow|2022
+Parent Trap|Jack Harlow|2022
+Lovin On Me|Jack Harlow|2023
+abcdefu (angrier)|GAYLE|2021
+clementine|GAYLE|2026
+bite the bullet|GAYLE|2026
+clara|GAYLE|2026
+Housewife|Tate McRae|2026
+Just Keep Watching (From F1® The Movie)|Tate McRae|2025
+Sports car|Tate McRae|2025
+Alter Ego|Doechii|2024
+CATFISH|Doechii|2024
+What It Is (Block Boy)|Doechii|2023
+In Da Getto|J Balvin|2021
+Tonto|J Balvin|2026
+Me Despido|Luis Fonsi|2026
+CAMBIARÉ|Luis Fonsi|2026
+Dolce|Luis Fonsi|2022
+São Paulo|The Weeknd|2024
+I'm Good (Blue)|David Guetta|2022
+Don't Go Yet|Camila Cabello|2021
+Bass Persuades|Miley Cyrus|2026
+Pink Pony Club|Chappell Roan|2020
+Sorry I'm Here For Someone Else|Benson Boone|2025
+HONEY (ARE U COMING?)|Måneskin|2021
+Can't Tame Her|Zara Larsson|2023
+Drag Path|Twenty One Pilots|2025
+It's ok I'm ok|Tate McRae|2024
+Dance The Night (From Barbie The Album)|Dua Lipa|2023
+Illusion|Dua Lipa|2024
+These Walls|Dua Lipa|2024
+honeybee|Olivia Rodrigo|2026
+Can’t Catch Me Now (from The Hunger Games: The Ballad of Songbirds & Snakes)|Olivia Rodrigo|2023
+drop dead|Olivia Rodrigo|2026
+deja vu|Olivia Rodrigo|2021
+what’s wrong with me|Olivia Rodrigo|2026
+my way|Olivia Rodrigo|2026
+American Girls|Harry Styles|2026
+Late Night Talking|Harry Styles|2022
+Daylight|Harry Styles|2022
+Matilda|Harry Styles|2022
+In Your Eyes|The Weeknd|2020
+Timeless|The Weeknd|2024
+Dancing In The Flames|The Weeknd|2024
+Woman|Doja Cat|2021
+Been Like This|Doja Cat|2021
+CHIHIRO|Billie Eilish|2024
+BLUE|Billie Eilish|2024
+SKINNY|Billie Eilish|2024
+L’AMOUR DE MA VIE|Billie Eilish|2024
+Opalite|Taylor Swift|2025
+Tears|Sabrina Carpenter|2025
+santa doesn’t know you like i do|Sabrina Carpenter|2023
+Feather|Sabrina Carpenter|2023
+When Did You Get Hot?|Sabrina Carpenter|2025
+white xmas|Sabrina Carpenter|2023
+Nonsense|Sabrina Carpenter|2022
+Super Graphic Ultra Modern Girl|Chappell Roan|2023
+My Kink Is Karma|Chappell Roan|2022
+Kaleidoscope|Chappell Roan|2023
+ROOM FOR 2|Benson Boone|2022
+The Time Of My Life|Benson Boone|2026
+Mr Electric Blue|Benson Boone|2025
+Ghost Town|Benson Boone|2021
+Slow It Down|Benson Boone|2024
+Be Someone|Benson Boone|2024
+Night Crawling|Miley Cyrus|2020
+Let’s Get Married|Miley Cyrus|2026
+End of the World|Miley Cyrus|2025
+High|Miley Cyrus|2020
+Abracadabra|Lady Gaga|2025
+Dance With Me|Bruno Mars|2026
+Risk It All|Bruno Mars|2026
+greedy|Tate McRae|2023
+Siren sounds (bonus)|Tate McRae|2025
+chaotic|Tate McRae|2022
+Revolving door|Tate McRae|2025
+exes|Tate McRae|2023
+TIT FOR TAT|Tate McRae|2025
+Guilty|Teddy Swims|2025
+Are You Even Real|Teddy Swims|2025
+Apple Juice|Teddy Swims|2024
+You're Still The One|Teddy Swims|2020
+Hammer to the Heart|Teddy Swims|2024
+Eat Your Young|Hozier|2023
+Far|SZA|2022
+Awkward|SZA|2022
+30 For 30|SZA|2024
+Low|SZA|2022
+The Other Side (from Trolls World Tour)|SZA|2020
+A Tear in Space (Airlock)|Glass Animals|2024
+Creatures in Heaven|Glass Animals|2024
+I WANNA BE YOUR SLAVE|Måneskin|2021
+LA PAURA DEL BUIO|Måneskin|2021
+Stay Love|Lewis Capaldi|2026
+Something In The Heavens|Lewis Capaldi|2025
+Survive|Lewis Capaldi|2025
+Celestial|Ed Sheeran|2022
+Sapphire|Ed Sheeran|2025
+Oranges|Kenya Grace|2022
+Good Reason|Gracie Abrams|2026
+That’s So True|Gracie Abrams|2024
+Lost in It|Gracie Abrams|2026
+I Love You, I'm Sorry|Gracie Abrams|2024
+Crazy Girl|Gracie Abrams|2026
+I miss you, I’m sorry|Gracie Abrams|2020
+Willing and Able|Noah Kahan|2026
+Draw You Out (From The Hunger Games: Sunrise on the Reaping - The Album)|Noah Kahan|2026
+Dashboard|Noah Kahan|2026
+Porch Light|Noah Kahan|2026
+23|Noah Kahan|2026
+Glue Myself Shut|Noah Kahan|2020
+A Bar Song (Tipsy)|Shaboozey|2024
+Good News|Shaboozey|2024
+Took A Walk (from "The Long Walk")|Shaboozey|2025
+Cowgirl|Shaboozey|2026
+I Had Some Help|Post Malone|2024
+I Like You (A Happier Song)|Post Malone|2022
+Chemical|Post Malone|2023
+we can't be friends (wait for your love)|Ariana Grande|2024
+just like magic|Ariana Grande|2020
+Guess featuring billie eilish|Charli xcx|2024
+Von dutch|Charli xcx|2024
+Dying for You|Charli xcx|2026
+Everything is romantic featuring caroline polachek|Charli xcx|2024
+tv off|Kendrick Lamar|2024
+United In Grief|Kendrick Lamar|2022
+My Body Isn't Ready|sombr|2026
+12 to 12|sombr|2025
+back to friends|sombr|2024
+undressed|sombr|2025
+Homewrecker|sombr|2026
+we never dated|sombr|2025
+FEVER DREAM|Alex Warren|2026
+Ordinary|Alex Warren|2024
+Eternity|Alex Warren|2025
+Burning Down|Alex Warren|2024
+EMERALD EYES|Alex Warren|2026
+PASSENGER|Alex Warren|2026
+Messy|Lola Young|2024
+From Down Here|Lola Young|2026
+d£aler|Lola Young|2025
+Post Sex Clarity|Lola Young|2025
+One Thing|Lola Young|2025
+SPIDERS|Lola Young|2025
+mori|Dawid Podsiadło|2022
+POST|Dawid Podsiadło|2022
+samoloty|Dawid Podsiadło|2025
+ten Stan|Sanah|2021
+Eldorado|Sanah|2022
+Miłość jest ślepa|Sanah|2024
+było, minęło|Sanah|2024
+hip hip hura!|Sanah|2024
+Melodia|Sanah|2020
+Ballada o Niej|Daria Zawiałow|2023
+Dziwna|Daria Zawiałow|2023
+SUPRO|Daria Zawiałow|2023
+Te numery|Young Leosia|2024
+Double Match|Young Leosia|2024
+Delay|Young Leosia|2024
+POMALUJ MÓJ ŚWIAT|Kizo|2024
+Cloudy Day|Tones and I|2021
+Home To Me|Tones and I|2026
+Eyes Don’t Lie|Tones and I|2022
+Won't Sleep|Tones and I|2021
+I Made It|Tones and I|2023
+Desire|Calvin Harris|2023
+Run Run River (Angels Above Me)|David Guetta|2026
+Gone Gone Gone|David Guetta|2025
+Together|David Guetta|2022
+Wrecked|Imagine Dragons|2021
+Bones|Imagine Dragons|2022
+Wake Up|Imagine Dragons|2024
+Nice to Meet You|Imagine Dragons|2024
+Eyes Closed|Imagine Dragons|2024
+THATS WHAT I WANT|Lil Nas X|2021
+World's Greatest!|Lil Nas X|2026
+STAR WALKIN' (League of Legends Worlds Anthem)|Lil Nas X|2022
+HOLIDAY|Lil Nas X|2020
+HERE WE GO! (from the Netflix film "Beverly Hills Cop: Axel F")|Lil Nas X|2024
+Nail Tech|Jack Harlow|2022
+Just Us|Jack Harlow|2025
+SIGNORA|Jack Harlow|2026
+MOVE ON|Jack Harlow|2026
+Living Alone|Jack Harlow|2026
+Trade Places|Jack Harlow|2026
+Water|Tyla|2023
+CHANEL|Tyla|2025
+IS IT|Tyla|2025
+PUSH 2 START|Tyla|2024
+SHE DID IT AGAIN|Tyla|2026
+Jump|Tyla|2024
+Good Bye|Victoria Monét|2023
+Let Me|Victoria Monét|2026
+Go There With You|Victoria Monét|2020
+Juicy|Victoria Monét|2026
+Experience|Victoria Monét|2020
+Coastin’|Victoria Monét|2021
+Lies|Zach Bryan|2026
+Plastic Cigarette|Zach Bryan|2026
+Slicked Back|Zach Bryan|2026
+Plainsman|Zach Bryan|2026
+If They Come Lookin'|Zach Bryan|2026
+Anyways|Zach Bryan|2026
+Last Thing You Need|Morgan Wallen|2026
+Last Night|Morgan Wallen|2023
+Been By Now|Morgan Wallen|2026
+Love Somebody|Morgan Wallen|2024
+I'm The Problem|Morgan Wallen|2025
+I Ain't Comin' Back|Morgan Wallen|2025
+Alibi|Ella Henderson|2024
+Under The Sun|Ella Henderson|2024
+Let’s Go Home Together|Ella Henderson|2021
+I Believe In Love Again|Peggy Gou|2023
+Find The Way|Peggy Gou|2024
+Nabi|Peggy Gou|2021
+D.A.N.C.E|Peggy Gou|2025
+Delilah (pull me out of this)|Fred again..|2022
+Marea (we’ve lost dancing)|Fred again..|2021
+Jessie (i miss you)|Fred again..|2020
+Winny|Fred again..|2025
+River|Ochman|2022
+Światłocienie|Ochman|2021
+Gdzie Iść|Ochman|2021
+Gdy nikt nie widzi|Ochman|2024
+Ja To Znam|Ochman|2021
+KAMIKAZE|Mata|2025
+O PÓŁNOCY|Mata|2025
+Papuga|Mata|2021
+zaraz wracam|Zalia|2022
+znowu sam|Zalia|2025
+Późne godziny|Natalia Szroeder|2021
+Pestki|Natalia Szroeder|2020
+Przypływy|Natalia Szroeder|2021
+Para|Natalia Szroeder|2021
+Powinnam?|Natalia Szroeder|2021
+Mimo najlepszych chęci|Vito Bambino|2026
+Cyber PRL|Vito Bambino|2023
+Decyzje|Vito Bambino|2026
+Americano|Vito Bambino|2025
+Bunkrów Nie Ma|Vito Bambino|2020
+Jak my - z filmu „Nasza rewolucja”|Kaśka Sochacka|2026
+Szum|Kaśka Sochacka|2024
+Boję się o Ciebie|Kaśka Sochacka|2021
+Pokoje Ta Druga na Bis|Kaśka Sochacka|2025
+Niebo było różowe|Kaśka Sochacka|2021
+Miłego lata|Margaret|2024
+Margarita|Margaret|2024
+Cześć, jak się masz?|Sobel|2021
+Zaczarowany Mózg|Sobel|2021
+PRZYMIARKI KSIĘCIA|Sobel|2024
+CAŁE LATO|Sobel|2025`],
+  dpolo: ['Disco polo', `
+Przez Twe Oczy Zielone|Akcent|2014
+Królowa Nocy|Akcent|1998
+Rodzinny Dom|Akcent|2001
+Pragnienie Miłości|Akcent|2016
+Przekorny Los|Akcent|2015
+Łobuz|Boys|1996
+Chciałbym Ci Powiedzieć|Classic|2021
+Ja Dla Ciebie Ty Dla Mnie|Classic|2017
+Umów się ze mną|Classic|2018
+Zabiorę Cię|Classic|2026
+Szalona blondynka|Bayer Full|2019
+Goralka Halka|Bayer Full|2012
+O Tobie Kochana|MiLANO|1996
+Największe serce|MiLANO|2018
+Ja Będę z Tobą|MiLANO|1996
+Serce To Nie Sługa|MiLANO|2017
+Miłość jak trucizna|MiLANO|2024
+Nadzieja|Skaner|1996
+Lato w Kołobrzegu|Skaner|1998
+Bo Sobota|Skaner|2015
+Dziękuję Za…|Skaner|2009
+Niewiara|Piękni I Młodzi|2014
+Kocham się w Tobie|Piękni I Młodzi|2014
+Znaki czasu|Piękni I Młodzi|2014
+Czułe Słowa (My Oh My)|Piękni I Młodzi|2023
+Ona jest taka cudowna|Piękni I Młodzi|2014
+Jedno słowo|Piękni I Młodzi|2015
+Róże|Defis|2018
+Tylko czas|Defis|2023
+Zakochane oczy|Defis|2017
+Tylko dla takiej|Defis|2024
+Ty i Ja|Defis|2023
+Argentyna|Defis|2019
+Trafił mi się anioł|After Party|2025
+Wciąż Na Ciebie Czekam|After Party|2017
+Zawsze Moja Wina|After Party|2018
+Jesteśmy sobie pisani|After Party|2023
+Na parkiecie będziesz wywijała|After Party|2022
+Dobrze widziałeś co brałeś|After Party|2026
+Wolę Olę|Power Play|2012
+Pendolino|Power Play|2018
+NajPiękne|Power Play|2014
+Tańcz Tańcz Tańcz|Long & Junior|2014
+Bądź Moją Królową|Long & Junior|2015
+Kolorowa Sukienka|Long & Junior|2015
+Bądź przy mnie blisko|Long & Junior|2017
+Miłość to nie żart|Jorrgus|2025
+Malowana Lala|Jorrgus|2015
+Będziesz Moja|Jorrgus|2016
+Ona Ma Coś w Sobie|Jorrgus|2015
+Oddam Ci serce|Jorrgus|2019
+Rozstanie|Fanatic|1991
+Uwierz mi|Fanatic|1992
+Sha La La|Mejk|2019
+Halo Halo Kochanie|Mejk|2019
+Baju Baj (Jambalaya)|Mejk|2019
+Ostatni raz zatańczysz ze mną|Mejk|2018
+Dla Rodziców|Cliver|2007
+Moje ciało oszalało|Cliver|2013
+Zaufaj Mi(kanikuł Po Polsku)|Cliver|2007
+Chodź Kochanie (odstaw Wszystko)|Cliver|2007
+Bliźniaczki|Czadoman|2014
+Chodź na kolana|Czadoman|2014
+Bomba|Czadoman|2022
+Wpadam|Czadoman|2026
+DOBRY STAN|EndRiu|2024
+4 DETROIT|EndRiu|2026
+BALUJEMY ALE TO VIXA|EndRiu|2025
+Czekam Tu na Ciebie|Tomasz Niecik|2015
+Miłość w Zakopanem|Sławomir|2017
+Ty mała znów zarosłaś|Sławomir|2017
+Boli dupa|Sławomir|2020
+Weselny Pyton|Sławomir|2020
+Rudy łabądź|Łobuzy|2026
+Ona czuje we mnie piniądz|Łobuzy|2015
+Mandacik|Łobuzy|2025
+Nie namawiaj mnie do złego|Łobuzy|2021
+Chodź ze mną|Łobuzy|2024
+Słodka Chwila|Exaited|2026
+Dziś Ci To Powiem|Exaited|2016
+Co Ja Się Z Tobą Mam|Exaited|2019
+Pokochaj Mnie Jeszcze Raz|Exaited|2018
+Oczy czarne oczy|Kordian|2021
+Dziewczyna z gór|Kordian|2018
+Góry moje góry|Kordian|2019
+Lubię wracać|Kordian|2021
+Tak to Ty|Kordian|2023
+Szumi gaj|Kordian|2025
+Tańcz Mała|Diadem|2008
+Zabrałaś Serce Moje|Diadem|2013
+Miałaś Co Chciałaś|Diadem|2008
+Ta Jedyna|Playboys|2026
+Za Twoje Kłamstwa|Playboys|2026
+Bahamy Morze Miami|Playboys|2022
+Nikt Nie Tańczy Tak Jak Ty|Playboys|2024
+Fajna jest ta dziewczyna|Playboys|2015
+Czarne Oczy|Playboys|2024`],
+  euro: ['Eurowizja', `
+Waterloo|ABBA|1974
+Puppet on a String|Sandie Shaw|1967
+Save Your Kisses for Me|Brotherhood of Man|1976
+Love Shine a Light|Katrina and the Waves|1997
+Diva|Dana International|1998
+Take Me to Your Heaven|Charlotte Nilsson|1999
+Wild Dances|Ruslana|2004
+My Number One|Helena Paparizou|2005
+Hard Rock Hallelujah|Lordi|2006
+Molitva|Marija Šerifović|2007
+Fairytale|Alexander Rybak|2009
+Satellite|Lena|2010
+Euphoria|Loreen|2012
+Only Teardrops|Emmelie de Forest|2013
+Rise Like a Phoenix|Conchita Wurst|2014
+Heroes|Måns Zelmerlöw|2015
+1944|Jamala|2016
+Amar pelos dois|Salvador Sobral|2017
+Fuego|Eleni Foureira|2018
+Arcade|Duncan Laurence|2019
+Soldi|Mahmood|2019
+Zitti e buoni|Måneskin|2021
+Voilà|Barbara Pravi|2020
+Shum|Go_A|2021
+Stefania|Kalush Orchestra|2022
+Space Man|Sam Ryder|2022
+SloMo|Chanel|2021
+Tattoo|Loreen|2023
+Cha Cha Cha|Käärijä|2023
+The Code|Nemo|2024
+Wasted Love|JJ|2025
+My Słowianie|Donatan|2013
+Color of Your Life|Michał Szpak|2015
+Flashlight|Kasia Moś|2017
+River|Ochman|2022
+Solo|Blanka|2022
+The Tower|Luna|2024
+Lipstick|Jedward|2011
+Hurricane|Eden Golan|2024
+Tout l'univers|Gjon's Tears|2021
+Think About Things|Daði Freyr|2020
+Dum Tek Tek|Hadise|2009
+Rhythm Inside|Loïc Nottet|2015
+Grande amore|Il Volo|2015
+Snap|Rosa Linn|2022
+Europapa|Joost Klein|2024`],
+  film: ['Soundtracki filmowe', `
+I Will Always Love You|Whitney Houston|1992
+Take My Breath Away|Berlin|1986
+Danger Zone|Kenny Loggins|1986
+Footloose|Kenny Loggins|1984
+Ghostbusters|Ray Parker Jr.|1984
+(I've Had) The Time of My Life|Bill Medley|1987
+Stayin' Alive|Bee Gees|1977
+Skyfall|Adele|2012
+Shallow|Lady Gaga|2018
+Lose Yourself|Eminem|2002
+Kiss from a Rose|Seal|1994
+(Everything I Do) I Do It for You|Bryan Adams|1991
+Men in Black|Will Smith|1997
+Happy|Pharrell Williams|2013
+Can't Stop the Feeling!|Justin Timberlake|2016
+City of Stars|Ryan Gosling|2016
+This Is Me|Keala Settle|2017
+See You Again|Wiz Khalifa|2015
+Writing's on the Wall|Sam Smith|2015
+No Time to Die|Billie Eilish|2020
+What Was I Made For?|Billie Eilish|2023
+Goldfinger|Shirley Bassey|1964
+Live and Let Die|Wings|1973
+A View to a Kill|Duran Duran|1985
+GoldenEye|Tina Turner|1995
+I Don't Want to Miss a Thing|Aerosmith|1998
+The Power of Love|Huey Lewis & The News|1985
+Holding Out for a Hero|Bonnie Tyler|1984
+Up Where We Belong|Joe Cocker|1982
+Glory of Love|Peter Cetera|1986
+Born to Be Wild|Steppenwolf|1968
+Lady Marmalade|Christina Aguilera|2001
+I'm Just Ken|Ryan Gosling|2023
+Dance the Night|Dua Lipa|2023
+Speechless|Naomi Scott|2019
+Hallelujah|Jeff Buckley|1994
+Girl, You'll Be a Woman Soon|Urge Overkill|1992
+Son of a Preacher Man|Dusty Springfield|1968
+Moon River|Audrey Hepburn|1961
+Iris|Goo Goo Dolls|1998
+Decode|Paramore|2008
+Supermassive Black Hole|Muse|2006
+Bad Guy|Billie Eilish|2019
+Sunflower|Post Malone|2018
+Earned It|The Weeknd|2014
+Love Me Like You Do|Ellie Goulding|2015
+Shape of My Heart|Sting|1993
+Separate Ways (Worlds Apart)|Journey|1983
+Running Up That Hill (A Deal with God)|Kate Bush|1985
+Murder on the Dancefloor|Sophie Ellis-Bextor|2001`],
+  kids: ['Bajki i seriale', `
+Under the Sea|Samuel E. Wright|1989
+Can You Feel the Love Tonight|Elton John|1994
+Circle of Life|Elton John|1994
+Reflection|Christina Aguilera|1998
+Into the Unknown|Idina Menzel|2019
+Surface Pressure|Jessica Darrow|2021
+Golden|HUNTR/X|2025
+Soda Pop|Saja Boys|2025
+I'm a Believer|Smash Mouth|2001
+Happy|Pharrell Williams|2013
+The Best of Both Worlds|Hannah Montana|2006
+Remember Me|Miguel|2017
+I'll Be There for You|The Rembrandts|1995
+Hakuna Matata|Nathan Lane|1994
+Friend Like Me|Robin Williams|1992
+Kiss the Girl|Samuel E. Wright|1989
+Part of Your World|Jodi Benson|1989
+Go the Distance|Michael Bolton|1997
+Real Gone|Sheryl Crow|2006
+Life Is a Highway|Rascal Flatts|2006
+I See the Light|Mandy Moore|2010
+Show Yourself|Idina Menzel|2019
+What Else Can I Do?|Diane Guerrero|2021
+Dos Oruguitas|Sebastián Yatra|2021
+Shiny|Jemaine Clement|2016
+What's Up Danger|Blackway|2018
+Peaches|Jack Black|2023
+Lost in the Woods|Jonathan Groff|2019
+Baby Shark|Pinkfong|2017
+Stranger Things|Kyle Dixon & Michael Stein|2016
+Strangers Like Me|Phil Collins|1999
+Two Worlds|Phil Collins|1999`]
 };
 const DECKS = Object.fromEntries(Object.entries(DECK_SRC).map(([id, [name, src]]) => [id, {
   name,
@@ -2426,6 +2903,8 @@ try { if (localStorage.getItem('pmm_mode') === 'tokens') S.mode = 'tokens'; } ca
 // ---------- dźwięki (syntezowane w przeglądarce, bez plików) ----------
 const SFX = { ctx: null, on: true };
 try { SFX.on = localStorage.getItem('pmm_sound') !== '0'; } catch {}
+// Kontekst audio tworzony przy pierwszym kliknięciu — poza gestem przeglądarka uruchamia go wyciszony.
+function unlockAudio() { try { const c = SFX.ctx || (SFX.ctx = new (window.AudioContext || window.webkitAudioContext)()); if (c.state === 'suspended') c.resume(); } catch {} }
 function tone(seq) {
   if (!SFX.on) return;
   try {
@@ -2501,7 +2980,8 @@ function jsonp(url) {
 // Słowa, które zdradzają cover / karaoke / wersję koncertową itp.
 const NOT_ORIGINAL = ['karaoke', 'tribute', 'cover', 'instrumental', 'made famous', 'originally performed', 'in the style of',
   'rerecord', 're record', 'live', 'remix', 'acoustic', 'lullaby', '8 bit', 'piano version', 'orchestra', 'symphonic',
-  'medley', 'sped up', 'slowed', 'workout', 'party hits', 'as made', 'cover version', 'w wykonaniu', 'wersja'];
+  'medley', 'sped up', 'slowed', 'workout', 'party hits', 'as made', 'cover version', 'w wykonaniu', 'wersja',
+  'covers', 'covered', 'remixes', 'remixed', 'tributes', 'lullabies', 'karaoke version', 'instrumentals'];
 // Tytuł bez dopisków: „(Remastered 2011)”, „[Live]”, „ - Radio Edit”, „feat. X”.
 const cleanTitle = x => norm(String(x || '')
   .replace(/\s*[\(\[][^\)\]]*[\)\]]/g, ' ')
@@ -2510,7 +2990,10 @@ const cleanTitle = x => norm(String(x || '')
 function pickBest(song, items) {
   const noThe = x => x.replace(/^the /, '');
   const a = noThe(norm(song.artist)), t = norm(song.title), ct = cleanTitle(song.title);
-  const bad = text => NOT_ORIGINAL.some(w => text.includes(w) && !t.includes(w));
+  // Całe słowa, nie fragmenty: „cover” nie może łapać albumu „Discovery”, a „live” — „Alive”.
+  // Słowo z tytułu lub nazwy wykonawcy nie dyskwalifikuje („Live and Let Die”, „Electric Light Orchestra”).
+  const hasWord = (text, w) => (' ' + text + ' ').includes(' ' + w + ' ');
+  const bad = text => NOT_ORIGINAL.some(w => hasWord(text, w) && !hasWord(t, w) && !hasWord(a, w));
   let best = null, bestScore = 0;
   for (const it of items) {
     if (!it.url) continue;
@@ -2536,12 +3019,18 @@ async function fromItunes(song) {
   const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
     const res = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=10&country=PL`, { signal: ctrl.signal });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) { const e = new Error('HTTP ' + res.status); e.status = res.status; throw e; }
     const data = await res.json();
     return pickBest(song, (data.results || []).map(r => ({
       artist: r.artistName, title: r.trackName, album: r.collectionName, url: r.previewUrl, art: (r.artworkUrl100 || '').replace('100x100', '300x300')
     })));
-  } catch (e) { console.warn('iTunes', e); itunesPausedUntil = Date.now() + 5 * 60 * 1000; return { error: true }; }
+  } catch (e) {
+    // Blokada za limit zapytań (403/429) trwa kilka minut — wtedy dłuższa przerwa. Pojedyncze wolne lub zerwane
+    // zapytanie to zwykle chwilowy problem z siecią: krótka przerwa, w międzyczasie gra korzysta z Deezera.
+    console.warn('iTunes', e);
+    itunesPausedUntil = Date.now() + (e.status === 403 || e.status === 429 ? 5 * 60 : 45) * 1000;
+    return { error: true };
+  }
   finally { clearTimeout(timer); }
 }
 async function fromDeezer(song) {
@@ -2703,6 +3192,9 @@ async function startGame() {
   $('setupErr').textContent = '';
   S.gameId = (S.gameId || 0) + 1; S.prefetch = null;
   S.teams = $('teams').checked;
+  S.easy = $('easy').checked;
+  S.timeLimit = parseInt($('timeLimit').value, 10) || 0;
+  try { localStorage.setItem('pmm_opts', JSON.stringify({ easy: S.easy, timeLimit: S.timeLimit, target: $('target').value })); } catch {}
   const who = S.teams ? 'drużyny' : 'gracza', whoMany = S.teams ? 'drużyn' : 'graczy';
   // Drużyny: „Czerwoni: Ania, Bartek” — po dwukropku skład (opcjonalny).
   const entries = $('players').value.split('\n').map(s => s.trim()).filter(Boolean).map(line => {
@@ -2797,8 +3289,9 @@ async function nextTurn(samePlayer = false) {
     const t = S.players[S.turn];
     if (t.members.length) t.mi = (t.mi + 1) % t.members.length; // w drużynie odpowiada kolejna osoba
   }
+  stopTimer();
   S.slot = null; S.phase = 'loading'; S.current = null;
-  S.stealer = null; S.stealSlot = null; S.audioFailed = false; S.bonusGiven = false;
+  S.stealer = null; S.stealSlot = null; S.audioFailed = false; S.bonusGiven = false; S.yearGuess = '';
   $('result').innerHTML = '';
   render();
   const card = await drawPlayable();
@@ -2814,7 +3307,7 @@ async function nextTurn(samePlayer = false) {
   audio.addEventListener('error', async () => {
     setSpin(false);
     if (S.audio !== audio || S.phase !== 'listen') return;
-    const fail = () => { if (S.audio === audio) { S.audioFailed = true; render(); $('status').textContent = 'Ten fragment nie chce się załadować. Kliknij „Pomiń utwór” (za darmo).'; } };
+    const fail = () => { if (S.audio === audio) { S.audioFailed = true; const f = document.activeElement && document.activeElement.id; render(); if (f === 'yearGuess') $('yearGuess').focus(); $('status').textContent = 'Ten fragment nie chce się załadować. Kliknij „Pomiń utwór” (za darmo).'; } };
     if (card.refreshed) return fail();
     card.refreshed = true;
     $('status').textContent = 'Odświeżam fragment…';
@@ -2825,7 +3318,37 @@ async function nextTurn(samePlayer = false) {
     $('status').textContent = 'Gotowe — kliknij płytę, żeby posłuchać.';
   });
   render();
+  startTimer();
   prefetchNext();
+}
+
+// ---------- minutnik tury ----------
+// Liczy tylko w fazie wybierania miejsca. Gdy czas minie: wybrane miejsce zostaje zatwierdzone, a bez wyboru karta przepada.
+function startTimer() {
+  stopTimer();
+  if (!S.timeLimit || S.phase !== 'listen') return;
+  const gid = S.gameId;
+  S.timeLeft = S.timeLimit;
+  renderTimer();
+  S.timer = setInterval(() => {
+    if (gid !== S.gameId || S.phase !== 'listen') return stopTimer();
+    S.timeLeft--;
+    if (S.timeLeft > 0 && S.timeLeft <= 5) tone([[880, .06, 'square', .05]]);
+    renderTimer();
+    if (S.timeLeft <= 0) {
+      stopTimer();
+      if (S.slot !== null) confirmPlacement(); else reveal('timeout');
+    }
+  }, 1000);
+}
+function stopTimer() { clearInterval(S.timer); S.timer = null; renderTimer(); }
+function renderTimer() {
+  const el = $('timer');
+  const on = !!S.timer && S.phase === 'listen';
+  el.classList.toggle('hidden', !on);
+  if (!on) return;
+  el.textContent = '⏱ ' + S.timeLeft + ' s';
+  el.classList.toggle('low', S.timeLeft <= 10);
 }
 
 function togglePlay() {
@@ -2843,7 +3366,12 @@ function updateRing() {
 
 function sortedCards(p) { return [...p.cards].sort((a, b) => a.year - b.year); }
 
-const fits = (cards, slot, y) => { const l = cards[slot - 1], r = cards[slot]; return (!l || l.year <= y) && (!r || y <= r.year); };
+// Czy rok pasuje w miejsce na osi. Tryb łatwy porównuje tylko dekady (1983 pasuje obok 1987 w każdą stronę).
+const fits = (cards, slot, y) => {
+  const k = v => S.easy ? Math.floor(v / 10) : v;
+  const l = cards[slot - 1], r = cards[slot];
+  return (!l || k(l.year) <= k(y)) && (!r || k(y) <= k(r.year));
+};
 const tokensOn = () => S.mode === 'tokens';
 // Kto może przejąć kartę: inni gracze z co najmniej jednym żetonem.
 const stealers = () => S.players.map((pl, i) => ({ pl, i })).filter(({ pl, i }) => i !== S.turn && pl.tokens > 0);
@@ -2851,6 +3379,7 @@ const stealers = () => S.players.map((pl, i) => ({ pl, i })).filter(({ pl, i }) 
 function confirmPlacement() {
   if (S.phase === 'listen') {
     if (S.slot === null) return;
+    stopTimer();
     // Tryb z żetonami: zanim odsłonimy, rywale mogą spróbować przejąć kartę.
     if (tokensOn() && stealers().length) { S.phase = 'challenge'; return render(); }
     return reveal();
@@ -2858,27 +3387,40 @@ function confirmPlacement() {
   if (S.phase === 'steal' && S.stealSlot !== null) return reveal();
 }
 
-function reveal(bought = false) {
+// how: undefined (zwykłe odsłonięcie), 'buy' (kupno za żetony), 'timeout' (minął czas bez wyboru miejsca).
+function reveal(how) {
+  if (!S.current || !['listen', 'challenge', 'steal'].includes(S.phase)) return;
+  stopTimer();
+  const bought = how === 'buy';
   const p = S.players[S.turn], cards = sortedCards(p), c = S.current, y = c.year;
   S.phase = 'reveal'; S.notice = '';
   const st = S.stealer !== null ? S.players[S.stealer] : null;
-  let gets = null, msg, cls;
+  let gets = null, msg, cls, yearBonus = false;
   if (bought) {
     gets = p; cls = 'ok'; msg = `Kupione za ${BUY_COST} żetony — karta trafia na oś: ${p.name}.`;
+  } else if (how === 'timeout') {
+    cls = 'bad'; msg = 'Czas minął! Karta przepada.';
   } else {
     if (st) st.tokens--;
     if (fits(cards, S.slot, y)) { gets = p; cls = 'ok'; msg = 'Dobrze! Karta zostaje u ciebie.' + (st ? ` Przejęcie nieudane, żeton traci: ${st.name}.` : ''); }
     else if (st && fits(cards, S.stealSlot, y)) { gets = st; cls = 'steal'; msg = `Pudło! Kartę przejmuje: ${st.name}.`; }
     else { cls = 'bad'; msg = 'Pudło. Karta przepada.' + (st ? ` Przejęcie też chybione (${st.name} traci żeton).` : ''); }
+    if (S.easy && gets) msg += ' (w trybie łatwym liczy się dekada)';
+    // Bonus za dokładny rok (tryb z żetonami): gracz wpisał rok przed odsłonięciem.
+    if (tokensOn() && parseInt(S.yearGuess, 10) === y && p.tokens < TOKENS_MAX) { p.tokens++; yearBonus = true; msg += ` Rok co do joty: +1 żeton!`; }
   }
-  if (gets) { c.isNew = true; gets.cards.push(c); }
+  if (gets) { c.isNew = gets === p; gets.cards.push(c); }
+  // Przejęta karta: pokaż w wyniku, gdzie trafiła na osi przejmującego.
+  const stolenTo = gets && gets !== p ? `<div class="sub">Oś ${esc(gets.name)}: ${sortedCards(gets).map(x => x === c ? `<b style="color:var(--ok)">${x.year}</b>` : x.year).join(' · ')}</div>` : '';
   ({ ok: sfx.ok, steal: sfx.steal, bad: sfx.bad })[cls]();
-  const bonus = tokensOn() && !bought
+  if (yearBonus) setTimeout(sfx.token, 450);
+  const bonus = tokensOn() && !bought && how !== 'timeout'
     ? `<div class="extra" id="bonusBox"><span class="q">Czy ${esc(speaker(p))} podał(a) tytuł i wykonawcę przed odsłonięciem?</span>
         <button class="small-btn" id="bonusYes" ${p.tokens >= TOKENS_MAX ? 'disabled title="Masz już najwięcej żetonów"' : ''}>Tak, +1 żeton</button></div>` : '';
   $('result').innerHTML = `<div class="result ${cls}">
     <div>${msg}</div>
     <div class="song">${esc(c.title)} — ${esc(c.artist)}, <span style="color:var(--accent-2)">${c.year}</span></div>
+    ${stolenTo}
     ${bonus}
     <div class="report" id="reportBox"><button class="linkbtn" id="reportBtn">Zły rok?</button></div></div>`;
   render();
@@ -2893,7 +3435,7 @@ function endGame(reason) {
   if (S.phase === 'ended') return;
   S.phase = 'ended';
   S.gameId = (S.gameId || 0) + 1; S.prefetch = null;
-  stopAudio();
+  stopAudio(); stopTimer();
   // Ranking: najpierw karty, przy remisie (tryb z żetonami) — żetony.
   const score = p => p.cards.length * 100 + (tokensOn() ? p.tokens : 0);
   const best = Math.max(...S.players.map(score));
@@ -2939,7 +3481,9 @@ function render() {
   const bar = $('tokenBar');
   let tb = '';
   if (tok && S.phase === 'listen') {
-    tb = `<button class="ghost small-btn" id="buyBtn" ${p.tokens >= BUY_COST ? '' : 'disabled'}>Kup kartę (${BUY_COST} żetony)</button>`;
+    tb = `<label class="guess">Rok? <input id="yearGuess" inputmode="numeric" maxlength="4" placeholder="np. 1987" value="${esc(S.yearGuess || '')}" aria-label="Twój typ roku: trafienie co do roku daje żeton"></label>`
+      + `<button class="ghost small-btn" id="buyBtn" ${p.tokens >= BUY_COST ? '' : 'disabled'}>Kup kartę (${BUY_COST} żetony)</button>`
+      + `<span class="q">Wpisz rok przed zatwierdzeniem — trafienie co do roku daje żeton.</span>`;
   } else if (S.phase === 'challenge') {
     tb = `<span class="q">Kto przejmuje?</span>` + stealers().map(({ pl, i }) => `<button class="ghost small-btn" data-steal="${i}">${esc(pl.name)} (● ${pl.tokens})</button>`).join('')
       + `<button class="small-btn" id="noStealBtn">Nikt — odsłoń</button>`;
@@ -2949,8 +3493,10 @@ function render() {
   bar.innerHTML = tb;
   bar.classList.toggle('hidden', !tb);
   const lbl = $('discLabel');
-  if (S.phase === 'reveal' && S.current?.art) { lbl.style.backgroundImage = `url("${S.current.art}")`; lbl.textContent = ''; }
+  const hint = S.easy && S.current?.art && ['listen', 'challenge', 'steal'].includes(S.phase);
+  if ((S.phase === 'reveal' || hint) && S.current?.art) { lbl.style.backgroundImage = `url("${S.current.art}")`; lbl.textContent = ''; }
   else { lbl.style.backgroundImage = ''; lbl.textContent = S.phase === 'loading' ? '…' : '?'; }
+  lbl.classList.toggle('blurred', !!hint);
 
   $('tlTitle').textContent = 'Oś czasu: ' + p.name;
   $('tlHint').classList.toggle('hidden', S.phase !== 'listen' && S.phase !== 'steal');
@@ -2972,10 +3518,14 @@ function render() {
 }
 
 // ---------- zdarzenia ----------
+const DECK_ICONS = { dpolo: '🪩', s20: '🎧', euro: '🎤', film: '🎬', kids: '🧸' };
 function renderDeckTiles() {
   const tiles = Object.entries(DECKS).map(([id, d]) => {
+    // Talie bez własnej grafiki dostają ikonę.
+    const pic = DECK_ICONS[id] ? `<span class="ai" aria-hidden="true">${DECK_ICONS[id]}</span>`
+      : `<img src="grafiki/talia-${id}.jpg" alt="" width="256" height="256" loading="lazy">`;
     return `<button type="button" class="deck" role="checkbox" aria-checked="${selDecks.includes(id)}" data-deck="${id}">
-      <img src="grafiki/talia-${id}.jpg" alt="" width="256" height="256" loading="lazy"><b>${esc(d.name)}</b><small>${d.from}–${d.to} · ${utwory(d.songs.length)}</small></button>`;
+      ${pic}<b>${esc(d.name)}</b><small>${d.from}–${d.to} · ${utwory(selectedSongs([id]).length)}</small></button>`;
   });
   tiles.push(`<button type="button" class="deck" role="checkbox" aria-checked="${isGemini()}" data-deck="gemini">
       <span class="ai" aria-hidden="true">✦</span><b>Własny motyw</b><small>Gemini, wymaga klucza</small></button>`);
@@ -3002,6 +3552,7 @@ function updateDeckInfo() {
   if (isGemini()) { $('deckInfo').innerHTML = ''; return; }
   const songs = selectedSongs();
   const total = songs.length, fresh = freshCount(songs);
+  if (!total) { $('deckInfo').textContent = 'W wybranych taliach nie ma utworów do zagrania (wszystkie zgłoszone jako błędne).'; return; }
   const ys = songs.map(s => s.year);
   const names = selDecks.map(id => DECKS[id].name).join(' + ');
   const head = selDecks.length > 1 ? `<b>${esc(names)}</b>: ${utwory(total)} bez powtórzeń, ${Math.min(...ys)}–${Math.max(...ys)}. ` : '';
@@ -3052,7 +3603,7 @@ $('copyReports').addEventListener('click', async () => {
 });
 $('clearReports').addEventListener('click', () => { saveReports([]); renderReports(); updateDeckInfo(); });
 
-$('startBtn').addEventListener('click', startGame);
+$('startBtn').addEventListener('click', () => { unlockAudio(); startGame(); });
 $('cancelGenBtn').addEventListener('click', () => { S.cancelled = true; S.gameId = (S.gameId || 0) + 1; if (S.cancelGen) S.cancelGen(); if (S.onCancel) S.onCancel(null); });
 $('playBtn').addEventListener('click', togglePlay);
 $('confirmBtn').addEventListener('click', confirmPlacement);
@@ -3062,7 +3613,12 @@ $('skipBtn').addEventListener('click', () => {
   if (tokensOn() && !S.audioFailed) { if (p.tokens < 1) return; p.tokens--; }
   nextTurn(true);
 });
-$('nextBtn').addEventListener('click', () => { S.players.forEach(pl => pl.cards.forEach(c => c.isNew = false)); nextTurn(); });
+// Tylko z fazy odsłonięcia: podwójne kliknięcie (albo klik + Enter) nie może przeskoczyć gracza.
+$('nextBtn').addEventListener('click', () => {
+  if (S.phase !== 'reveal' || S.players.some(pl => pl.cards.length >= S.target)) return;
+  S.players.forEach(pl => pl.cards.forEach(c => c.isNew = false));
+  nextTurn();
+});
 $('timeline').addEventListener('click', e => {
   const b = e.target.closest('.slot');
   if (!b || b.disabled) return;
@@ -3077,7 +3633,7 @@ $('tokenBar').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b || b.disabled) return;
   const p = S.players[S.turn];
-  if (b.id === 'buyBtn' && S.phase === 'listen' && p.tokens >= BUY_COST) { p.tokens -= BUY_COST; reveal(true); }
+  if (b.id === 'buyBtn' && S.phase === 'listen' && p.tokens >= BUY_COST) { p.tokens -= BUY_COST; reveal('buy'); }
   else if (b.id === 'noStealBtn' && S.phase === 'challenge') reveal();
   else if (b.dataset.steal !== undefined && S.phase === 'challenge') { S.stealer = parseInt(b.dataset.steal, 10); S.stealSlot = null; S.phase = 'steal'; render(); }
   else if (b.id === 'cancelStealBtn' && S.phase === 'steal') { S.stealer = null; S.stealSlot = null; S.phase = 'challenge'; render(); }
@@ -3115,6 +3671,60 @@ $('installBtn').addEventListener('click', async () => { if (!installEvt) return;
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
+
+// Typ roku (tryb z żetonami) — zapamiętany w stanie, bo pasek przerysowuje się przy każdym wyborze miejsca.
+$('tokenBar').addEventListener('input', e => {
+  if (e.target.id !== 'yearGuess') return;
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+  S.yearGuess = e.target.value;
+});
+
+// ---------- klawiatura i pilot TV ----------
+// Spacja: odtwórz/pauza · ←/→: wybór miejsca · Enter: zatwierdź / odsłoń / dalej · M: dźwięki.
+document.addEventListener('keydown', e => {
+  if ($('game').classList.contains('hidden') || e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+    if (e.key === 'Enter' && e.target.id === 'yearGuess') { e.preventDefault(); e.target.blur(); confirmPlacement(); }
+    return;
+  }
+  const onButton = tag === 'button';
+  const key = e.key;
+  if (key === ' ' || key === 'Spacebar' || key === 'MediaPlayPause') {
+    e.preventDefault();
+    if (onButton) e.target.blur();
+    if (!$('playBtn').disabled) togglePlay();
+  } else if (key === 'ArrowLeft' || key === 'ArrowRight') {
+    const p = S.players[S.turn];
+    if (!p || (S.phase !== 'listen' && S.phase !== 'steal')) return;
+    e.preventDefault();
+    if (onButton) e.target.blur();
+    const max = p.cards.length, dir = key === 'ArrowRight' ? 1 : -1;
+    const field = S.phase === 'listen' ? 'slot' : 'stealSlot';
+    let i = S[field] === null ? (dir > 0 ? 0 : max) : Math.min(max, Math.max(0, S[field] + dir));
+    if (field === 'stealSlot' && i === S.slot) { i += dir; if (i < 0 || i > max) return; } // w przejęciu nie można wskazać tego samego miejsca
+    S[field] = i;
+    render();
+    const el = document.querySelector(`.slot[data-slot="${i}"]`);
+    if (el) el.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  } else if (key === 'Enter') {
+    if (onButton) return; // Enter na zaznaczonym przycisku po prostu go klika
+    e.preventDefault();
+    if (S.phase === 'listen' || S.phase === 'steal') confirmPlacement();
+    else if (S.phase === 'challenge') reveal();
+    else if (S.phase === 'reveal' && !$('nextBtn').classList.contains('hidden')) $('nextBtn').click();
+  } else if (key === 'm' || key === 'M') {
+    $('soundBtn').click();
+  }
+});
+
+// Zapamiętane ustawienia z poprzedniej gry
+try {
+  const o = JSON.parse(localStorage.getItem('pmm_opts') || '{}');
+  if (o.easy) $('easy').checked = true;
+  if ([0, 30, 60, 90].includes(o.timeLimit)) $('timeLimit').value = String(o.timeLimit);
+  if (['5', '7', '10'].includes(o.target)) $('target').value = o.target;
+} catch {}
 
 renderDeckTiles(); updateDeckInfo(); renderModes(); renderTeamsToggle(); renderReports(); renderSound();
 </script>
