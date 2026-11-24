@@ -54,7 +54,7 @@ Opcjonalnie można wygenerować własną talię na dowolny motyw przez Gemini (w
 - Kilka talii naraz (np. Polskie hity + Rap PL) — bez powtórzeń utworów.
 - Gra pamięta zagrane utwory i w kolejnych rozgrywkach najpierw losuje nowe.
 - Przycisk „Zły rok?” przy odsłoniętym utworze — zgłoszone utwory nie wracają, a listę można skopiować i odesłać do poprawki.
-- Dźwięki, animacje i konfetti dla zwycięzcy (dźwięki można wyłączyć).
+- Dźwięki, animacje i konfetti, a dla zwycięzcy fragment „We Are the Champions” (dźwięki można wyłączyć).
 - Czas na turę (30, 60 albo 90 s) i tryb łatwy: wystarczy trafić dekadę, a rozmyta okładka podpowiada.
 - W trybie z żetonami dodatkowy żeton za rok co do joty.
 - Klawiatura i pilot TV: Spacja odtwarza, ← → wybierają miejsce, Enter zatwierdza, M wycisza.

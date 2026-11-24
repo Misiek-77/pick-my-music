@@ -417,7 +417,7 @@ Bartek</textarea>
       <div class="big" id="winnerText"></div>
       <div class="sub" id="winnerSub"></div>
       <div class="sub game-stats" id="gameStats"></div>
-      <div class="actions" style="justify-content:center;margin-top:20px"><button id="againBtn">Zagraj jeszcze raz</button></div>
+      <div class="actions" style="justify-content:center;margin-top:20px"><button id="againBtn">Zagraj jeszcze raz</button><button class="ghost hidden" id="winMusicBtn">🔇 Wycisz muzykę</button></div>
     </div>
   </section>
 </div>
@@ -3389,6 +3389,39 @@ async function nextTurn(samePlayer = false) {
   prefetchNext();
 }
 
+// ---------- piosenka zwycięzcy: „We Are the Champions” (30-sekundowy fragment z iTunes / Deezera) ----------
+const WIN_SONG = { title: 'We Are the Champions', artist: 'Queen' };
+const winAudio = new Audio();
+winAudio.preload = 'auto';
+let winSong = null; // { url, at } — link z Deezera wygasa po ok. godzinie, więc pamiętamy, kiedy go pobrano
+async function prepareWinSong() {
+  if (winSong && Date.now() - winSong.at < 45 * 60 * 1000) return winSong.url;
+  const p = await findPreview(WIN_SONG);
+  winSong = p && !p.error ? { url: p.url, at: Date.now() } : null;
+  return winSong && winSong.url;
+}
+// iPhone pozwala grać dźwięk tylko po dotknięciu: „odblokowujemy” odtwarzacz cichym dźwiękiem przy starcie gry.
+function unlockWinAudio() {
+  try {
+    const rate = 8000, n = 800, b = new ArrayBuffer(44 + n), v = new DataView(b);
+    const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+    winAudio.src = URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+    winAudio.play().then(() => winAudio.pause()).catch(() => {});
+  } catch {}
+}
+function stopWinSong() { winAudio.pause(); $('winMusicBtn').classList.add('hidden'); }
+async function playWinSong() {
+  if (!SFX.on) return sfx.win();
+  const url = await prepareWinSong();
+  if (!url || $('endView').classList.contains('hidden')) return url ? null : sfx.win();
+  winAudio.src = url; winAudio.currentTime = 0; winAudio.volume = 1;
+  winAudio.play().then(() => $('winMusicBtn').classList.remove('hidden')).catch(() => sfx.win());
+}
+winAudio.addEventListener('ended', () => $('winMusicBtn').classList.add('hidden'));
+
 // ---------- minutnik tury ----------
 // Liczy tylko w fazie wybierania miejsca. Gdy czas minie: wybrane miejsce zostaje zatwierdzone, a bez wyboru karta przepada.
 function startTimer() {
@@ -3516,7 +3549,7 @@ function endGame(reason) {
     `<div><b>${esc(p.name)}</b>: ${p.g.hits}/${p.g.tries} trafień (${pct(p.g.hits, p.g.tries)}), najdłuższa seria ${p.g.best}</div>`).join('');
   renderStats();
   show('endView');
-  if (finished || !reason) { sfx.win(); confetti(); }
+  if (finished || !reason) { playWinSong(); confetti(); }
 }
 
 // ---------- widok ----------
@@ -3676,7 +3709,7 @@ $('copyReports').addEventListener('click', async () => {
 });
 $('clearReports').addEventListener('click', () => { saveReports([]); renderReports(); updateDeckInfo(); });
 
-$('startBtn').addEventListener('click', () => { unlockAudio(); startGame(); });
+$('startBtn').addEventListener('click', () => { unlockAudio(); unlockWinAudio(); stopWinSong(); prepareWinSong(); startGame(); });
 $('cancelGenBtn').addEventListener('click', () => { S.cancelled = true; S.gameId = (S.gameId || 0) + 1; if (S.cancelGen) S.cancelGen(); if (S.onCancel) S.onCancel(null); });
 $('playBtn').addEventListener('click', togglePlay);
 $('confirmBtn').addEventListener('click', confirmPlacement);
@@ -3735,7 +3768,8 @@ $('result').addEventListener('click', e => {
 function renderSound() { $('soundBtn').textContent = SFX.on ? '🔊 Dźwięki' : '🔇 Bez dźwięków'; $('soundBtn').setAttribute('aria-pressed', String(SFX.on)); }
 $('soundBtn').addEventListener('click', () => { SFX.on = !SFX.on; try { localStorage.setItem('pmm_sound', SFX.on ? '1' : '0'); } catch {} renderSound(); if (SFX.on) sfx.token(); });
 $('quitBtn').addEventListener('click', () => endGame('Gra przerwana.'));
-$('againBtn').addEventListener('click', () => { S.prefetch = null; updateDeckInfo(); show('setup'); });
+$('againBtn').addEventListener('click', () => { stopWinSong(); S.prefetch = null; updateDeckInfo(); show('setup'); });
+$('winMusicBtn').addEventListener('click', stopWinSong);
 
 // Instalacja jako aplikacja (PWA)
 let installEvt = null;
