@@ -30,7 +30,7 @@ Zaznacz „Gramy w drużynach” i wpisz np. `Czerwoni: Ania, Bartek`. W każdej
 
 | Talia | Utworów |
 |---|---|
-| Mix: wszystkie talie razem | 2298 |
+| Mix: wszystkie talie razem | 2293 |
 | Polskie hity | 218 |
 | Złote lata 60. i 70. | 158 |
 | Lata 80. | 184 |
@@ -41,7 +41,7 @@ Zaznacz „Gramy w drużynach” i wpisz np. `Czerwoni: Ania, Bartek`. W każdej
 | Rock | 251 |
 | Rap i trap USA | 172 |
 | Rap i trap PL | 208 |
-| Disco polo | 97 |
+| Disco polo | 92 |
 | Eurowizja | 46 |
 | Soundtracki filmowe | 50 |
 | Bajki i seriale | 32 |
@@ -58,6 +58,7 @@ Opcjonalnie można wygenerować własną talię na dowolny motyw przez Gemini (w
 - Czas na turę (30, 60 albo 90 s) i tryb łatwy: wystarczy trafić dekadę, a rozmyta okładka podpowiada.
 - W trybie z żetonami dodatkowy żeton za rok co do joty.
 - Klawiatura i pilot TV: Spacja odtwarza, ← → wybierają miejsce, Enter zatwierdza, M wycisza.
+- Statystyki graczy w przeglądarce: rozegrane gry, wygrane, trafność, najdłuższa seria i najlepsza dekada.
 - Instalacja jak aplikacja (PWA): na telefonie „Dodaj do ekranu początkowego” daje pełny ekran i własną ikonę.
 - Dźwięk z iTunes, a gdy nie odpowiada — z Deezera (tylko oryginalne nagrania, bez coverów i wersji live).
 - Układ dopasowany do telefonu i telewizora (tryb TV powiększa grę na dużym ekranie, nawigacja pilotem).

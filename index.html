@@ -221,6 +221,11 @@
   .keys { font-size: 13px; color: var(--muted); margin-top: 12px; text-align: center; }
   .keys kbd { font: 600 12px Inter, system-ui, sans-serif; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; color: var(--text); background: var(--panel-2); }
   @media (hover: none) { .keys { display: none; } }
+  .stats-wrap { overflow-x: auto; margin-top: 10px; }
+  table.stats { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.stats th, table.stats td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table.stats th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .game-stats { margin-top: 10px; display: grid; gap: 2px; }
   #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
   @media (max-width: 640px) { .modes { grid-template-columns: 1fr; } .extra { justify-content: center; } }
   /* Telefon, ekran gry: płyta obok nazwy gracza, przyciski pod spodem — żeby oś czasu była widoczna bez przewijania */
@@ -337,6 +342,11 @@ Bartek</textarea>
         <p class="sub">Na iPhonie otwórz grę w Safari, stuknij <b>Udostępnij</b>, a potem <b>Do ekranu początkowego</b>. Na Androidzie w Chrome: menu ⋮ → <b>Zainstaluj aplikację</b>. Gra otworzy się na pełnym ekranie, z własną ikoną.</p>
         <button class="ghost small-btn hidden" id="installBtn">Zainstaluj teraz</button>
       </details>
+      <details id="statsBox" class="hidden">
+        <summary>Statystyki (<span id="statsGames">0</span>)</summary>
+        <div id="statsBody"></div>
+        <div class="actions" style="margin-top:10px"><button class="ghost small-btn" id="clearStats">Wyczyść statystyki</button></div>
+      </details>
       <details id="reportsBox">
         <summary>Zgłoszone błędne lata (<span id="reportsCount">0</span>)</summary>
         <p class="sub">Utwory zgłoszone przyciskiem „Zły rok?” w czasie gry. Gra już ich nie losuje w tej przeglądarce. Skopiuj listę i wyślij ją autorowi talii, żeby poprawić ją dla wszystkich.</p>
@@ -406,6 +416,7 @@ Bartek</textarea>
       <div class="sub">Koniec gry</div>
       <div class="big" id="winnerText"></div>
       <div class="sub" id="winnerSub"></div>
+      <div class="sub game-stats" id="gameStats"></div>
       <div class="actions" style="justify-content:center;margin-top:20px"><button id="againBtn">Zagraj jeszcze raz</button></div>
     </div>
   </section>
@@ -2621,7 +2632,6 @@ PRZYMIARKI KSIĘCIA|Sobel|2024
 CAŁE LATO|Sobel|2025`],
   dpolo: ['Disco polo', `
 Przez Twe Oczy Zielone|Akcent|2014
-Królowa Nocy|Akcent|1998
 Rodzinny Dom|Akcent|2001
 Pragnienie Miłości|Akcent|2016
 Przekorny Los|Akcent|2015
@@ -2662,10 +2672,6 @@ Dobrze widziałeś co brałeś|After Party|2026
 Wolę Olę|Power Play|2012
 Pendolino|Power Play|2018
 NajPiękne|Power Play|2014
-Tańcz Tańcz Tańcz|Long & Junior|2014
-Bądź Moją Królową|Long & Junior|2015
-Kolorowa Sukienka|Long & Junior|2015
-Bądź przy mnie blisko|Long & Junior|2017
 Miłość to nie żart|Jorrgus|2025
 Malowana Lala|Jorrgus|2015
 Będziesz Moja|Jorrgus|2016
@@ -2883,6 +2889,42 @@ const REP_KEY = 'pmm_reports_v1';
 function loadReports() { try { const a = JSON.parse(localStorage.getItem(REP_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } }
 function saveReports(a) { try { localStorage.setItem(REP_KEY, JSON.stringify(a)); } catch {} }
 const reportedKeys = () => new Set(loadReports().map(songKey));
+
+// ---------- statystyki (w tej przeglądarce, po nazwie gracza / drużyny) ----------
+const STATS_KEY = 'pmm_stats_v1';
+function loadStats() { try { const s = JSON.parse(localStorage.getItem(STATS_KEY) || 'null'); if (s && s.players) return s; } catch {} return { games: 0, decks: {}, players: {} }; }
+function saveStats(s) { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch {} }
+// Wynik jednej tury dla gracza: trafienie lub pudło, seria i dekada utworu.
+function trackTry(p, hit, year) {
+  const g = p.g || (p.g = { tries: 0, hits: 0, streak: 0, best: 0, dec: {} });
+  g.tries++;
+  if (hit) { g.hits++; g.streak++; g.best = Math.max(g.best, g.streak); } else g.streak = 0;
+  const d = Math.floor(year / 10) * 10, e = g.dec[d] || (g.dec[d] = { t: 0, h: 0 });
+  e.t++; if (hit) e.h++;
+}
+// Po grze: dopisz wyniki do statystyk. Gra bez żadnej tury się nie liczy.
+function recordGame(winnerNames, finished) {
+  if (!S.players.some(p => p.g && p.g.tries)) return;
+  const s = loadStats();
+  s.games++;
+  for (const id of (S.fromDecks ? selDecks : ['gemini'])) s.decks[id] = (s.decks[id] || 0) + 1;
+  for (const p of S.players) {
+    const k = p.name.trim().toLowerCase();
+    const sp = s.players[k] || (s.players[k] = { name: p.name, games: 0, wins: 0, tries: 0, hits: 0, best: 0, dec: {} });
+    const g = p.g || { tries: 0, hits: 0, best: 0, dec: {} };
+    sp.name = p.name; sp.games++; sp.tries += g.tries; sp.hits += g.hits; sp.best = Math.max(sp.best, g.best);
+    if (finished && winnerNames.includes(p.name)) sp.wins++;
+    for (const [d, e] of Object.entries(g.dec)) { const x = sp.dec[d] || (sp.dec[d] = { t: 0, h: 0 }); x.t += e.t; x.h += e.h; }
+  }
+  saveStats(s);
+}
+const pct = (h, t) => t ? Math.round(100 * h / t) + '%' : '—';
+// Najlepsza dekada: najwyższa skuteczność przy co najmniej 3 próbach.
+function bestDecade(dec) {
+  let best = null;
+  for (const [d, e] of Object.entries(dec)) if (e.t >= 3 && (!best || e.h / e.t > best.r)) best = { d, r: e.h / e.t };
+  return best ? `lata ${String(best.d).slice(2)}. (${Math.round(best.r * 100)}%)` : '—';
+}
 
 // ---------- wybór talii: kilka naraz ----------
 const SEL_KEY = 'pmm_decks_v1';
@@ -3435,6 +3477,7 @@ function reveal(how) {
     if (tokensOn() && parseInt(S.yearGuess, 10) === y && p.tokens < TOKENS_MAX) { p.tokens++; yearBonus = true; msg += ` Rok co do joty: +1 żeton!`; }
   }
   if (gets) { c.isNew = gets === p; gets.cards.push(c); }
+  if (!bought) trackTry(p, gets === p, y);
   // Przejęta karta: pokaż w wyniku, gdzie trafiła na osi przejmującego.
   const stolenTo = gets && gets !== p ? `<div class="sub">Oś ${esc(gets.name)}: ${sortedCards(gets).map(x => x === c ? `<b style="color:var(--ok)">${x.year}</b>` : x.year).join(' · ')}</div>` : '';
   ({ ok: sfx.ok, steal: sfx.steal, bad: sfx.bad })[cls]();
@@ -3468,6 +3511,10 @@ function endGame(reason) {
   const finished = S.players.some(p => p.cards.length >= S.target);
   $('winnerText').textContent = winners.length > 1 ? 'Remis: ' + winners.join(', ') : (S.teams ? 'Wygrywa drużyna ' : 'Wygrywa ') + winners[0] + '!';
   $('winnerSub').textContent = (reason ? reason + ' ' : '') + S.players.map(p => `${p.name}: ${karty(p.cards.length)}${tokensOn() ? ` · ${p.tokens} żet.` : ''}`).join('  |  ');
+  recordGame(winners, finished);
+  $('gameStats').innerHTML = S.players.filter(p => p.g && p.g.tries).map(p =>
+    `<div><b>${esc(p.name)}</b>: ${p.g.hits}/${p.g.tries} trafień (${pct(p.g.hits, p.g.tries)}), najdłuższa seria ${p.g.best}</div>`).join('');
+  renderStats();
   show('endView');
   if (finished || !reason) { sfx.win(); confetti(); }
 }
@@ -3752,7 +3799,20 @@ try {
   if (['5', '7', '10'].includes(o.target)) $('target').value = o.target;
 } catch {}
 
-renderDeckTiles(); updateDeckInfo(); renderModes(); renderTeamsToggle(); renderReports(); renderSound();
+function renderStats() {
+  const s = loadStats();
+  const list = Object.values(s.players).sort((a, b) => b.games - a.games || b.hits - a.hits);
+  $('statsBox').classList.toggle('hidden', !s.games);
+  $('statsGames').textContent = plural(s.games, 'gra', 'gry', 'gier');
+  const fav = Object.entries(s.decks).sort((a, b) => b[1] - a[1])[0];
+  const favName = fav ? (DECKS[fav[0]] ? DECKS[fav[0]].name : 'Własny motyw') : '';
+  $('statsBody').innerHTML = `<div class="stats-wrap"><table class="stats"><thead><tr><th>Gracz</th><th>Gry</th><th>Wygrane</th><th>Trafność</th><th>Seria</th><th>Najlepiej</th></tr></thead><tbody>`
+    + list.map(p => `<tr><td>${esc(p.name)}</td><td>${p.games}</td><td>${p.wins}</td><td>${pct(p.hits, p.tries)}</td><td>${p.best}</td><td>${bestDecade(p.dec)}</td></tr>`).join('')
+    + `</tbody></table></div>` + (favName ? `<p class="sub">Najczęściej grana talia: <b>${esc(favName)}</b> (${plural(fav[1], 'raz', 'razy', 'razy')}).</p>` : '');
+}
+$('clearStats').addEventListener('click', () => { saveStats({ games: 0, decks: {}, players: {} }); renderStats(); });
+
+renderDeckTiles(); updateDeckInfo(); renderModes(); renderTeamsToggle(); renderReports(); renderSound(); renderStats();
 </script>
 </body>
 </html>
