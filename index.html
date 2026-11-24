@@ -2995,25 +2995,75 @@ const sfx = {
   win: () => tone([[523, .16], [659, .16], [784, .16], [1047, .5], [784, .14], [1047, .6]])
 };
 
-// ---------- konfetti ----------
+// ---------- świętowanie zwycięzcy: fajerwerki, armatki z konfetti i deszcz konfetti ----------
+// Jedna animacja na płótnie nad całą stroną, ok. 9 s (tyle, co fraza z piosenki).
 function confetti() {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const cv = $('confetti'), ctx = cv.getContext('2d');
+  const cv = $('confetti'), ctx = cv.getContext('2d'), dpr = devicePixelRatio || 1;
   cv.classList.remove('hidden');
-  const W = cv.width = innerWidth * devicePixelRatio, H = cv.height = innerHeight * devicePixelRatio;
-  const colors = ['#ff7a59', '#ffc857', '#4fd1a5', '#f3efe6', '#ff5d73', '#8f7cff'];
-  const ps = Array.from({ length: 160 }, () => ({
-    x: W / 2 + (Math.random() - .5) * W * .3, y: H * .35, vx: (Math.random() - .5) * 26 * devicePixelRatio, vy: (-Math.random() * 22 - 6) * devicePixelRatio,
-    s: (6 + Math.random() * 8) * devicePixelRatio, r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: colors[Math.floor(Math.random() * colors.length)]
-  }));
-  const t0 = performance.now();
-  (function frame(t) {
-    ctx.clearRect(0, 0, W, H);
-    for (const p of ps) {
-      p.vy += 0.55 * devicePixelRatio; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
-      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore();
+  const W = cv.width = innerWidth * dpr, H = cv.height = innerHeight * dpr;
+  const colors = ['#ff7a59', '#ffc857', '#4fd1a5', '#f3efe6', '#ff5d73', '#8f7cff', '#59c3ff'];
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const DUR = 9000, t0 = performance.now();
+  const papers = [], sparks = [], rockets = [];
+  // Konfetti: prostokąciki, które wirują, kołyszą się i powoli opadają.
+  const paper = (x, y, vx, vy) => papers.push({ x, y, vx, vy, s: (6 + Math.random() * 7) * dpr, r: Math.random() * 6, vr: (Math.random() - .5) * .35,
+    sway: Math.random() * 6, c: pick(colors) });
+  // Armatki z dolnych rogów na start.
+  const cannon = (fromLeft) => { for (let i = 0; i < 90; i++) {
+    const ang = (fromLeft ? -1 : -Math.PI + 1) + (Math.random() - .5) * .6 - (fromLeft ? .35 : -.35), sp = (18 + Math.random() * 16) * dpr;
+    paper(fromLeft ? 0 : W, H, Math.cos(ang) * sp * (fromLeft ? 1 : -1) * (fromLeft ? 1 : -1), Math.sin(ang) * sp);
+  } };
+  cannon(true); cannon(false);
+  // Fajerwerk: rakieta leci w górę i wybucha kulą iskier.
+  const launch = () => {
+    const x = W * (.15 + Math.random() * .7);
+    rockets.push({ x, y: H, vx: (Math.random() - .5) * 2 * dpr, vy: -(H * (.016 + Math.random() * .006)), ty: H * (.15 + Math.random() * .3), c: pick(colors) });
+  };
+  const burst = (x, y, c) => {
+    const n = 70 + Math.floor(Math.random() * 40), c2 = pick(colors);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.random() * .1, sp = (2.5 + Math.random() * 4.5) * dpr;
+      sparks.push({ x, y, px: x, py: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, decay: .010 + Math.random() * .012, c: Math.random() < .7 ? c : c2 });
     }
-    if (t - t0 < 4500) requestAnimationFrame(frame); else { ctx.clearRect(0, 0, W, H); cv.classList.add('hidden'); }
+    tone([[180 + Math.random() * 120, .12, 'triangle', .03]]); // ciche „puf”
+  };
+  let nextRocket = t0 + 150;
+  (function frame(t) {
+    const el = t - t0;
+    ctx.clearRect(0, 0, W, H);
+    // nowe rakiety co ~0,45 s, czasem po dwie naraz
+    if (el < DUR - 2500 && t >= nextRocket) { launch(); if (Math.random() < .35) launch(); nextRocket = t + 300 + Math.random() * 350; }
+    // deszcz konfetti z góry przez większość animacji
+    if (el < DUR - 3000) for (let i = 0; i < 3; i++) paper(Math.random() * W, -20 * dpr, (Math.random() - .5) * 2 * dpr, (1 + Math.random() * 2) * dpr);
+    // rakiety
+    for (let i = rockets.length - 1; i >= 0; i--) {
+      const r = rockets[i]; r.x += r.vx; r.y += r.vy; r.vy *= .985;
+      ctx.fillStyle = r.c; ctx.beginPath(); ctx.arc(r.x, r.y, 2.4 * dpr, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(255,200,87,.35)'; ctx.fillRect(r.x - dpr, r.y, 2 * dpr, 14 * dpr);
+      if (r.y <= r.ty || r.vy > -2 * dpr) { burst(r.x, r.y, r.c); rockets.splice(i, 1); }
+    }
+    // iskry z wybuchów (świecące smugi)
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i]; s.px = s.x; s.py = s.y; s.vx *= .97; s.vy = s.vy * .97 + .06 * dpr; s.x += s.vx; s.y += s.vy; s.life -= s.decay;
+      if (s.life <= 0) { sparks.splice(i, 1); continue; }
+      ctx.globalAlpha = Math.max(0, s.life); ctx.strokeStyle = s.c; ctx.lineWidth = 2.2 * dpr;
+      ctx.beginPath(); ctx.moveTo(s.px - s.vx * 2, s.py - s.vy * 2); ctx.lineTo(s.x, s.y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    // konfetti
+    for (let i = papers.length - 1; i >= 0; i--) {
+      const p = papers[i];
+      p.vy = Math.min(p.vy + .35 * dpr, 3.2 * dpr); p.vx *= .985; p.sway += .05;
+      p.x += p.vx + Math.sin(p.sway) * .8 * dpr; p.y += p.vy; p.r += p.vr;
+      if (p.y > H + 30 * dpr) { papers.splice(i, 1); continue; }
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.scale(1, Math.cos(p.sway * 2)); ctx.fillStyle = p.c;
+      ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore();
+    }
+    if (el < DUR || sparks.length || (papers.length && el < DUR + 4000)) requestAnimationFrame(frame);
+    else { ctx.clearRect(0, 0, W, H); cv.classList.add('hidden'); }
   })(t0);
 }
 
@@ -3417,9 +3467,21 @@ async function playWinSong() {
   if (!SFX.on) return sfx.win();
   const url = await prepareWinSong();
   if (!url || $('endView').classList.contains('hidden')) return url ? null : sfx.win();
-  winAudio.src = url; winAudio.currentTime = 0; winAudio.volume = 1;
+  // Tylko końcówka refrenu: „'Cause we are the champions… of the world!” (ok. 9 s, łagodnie wyciszona).
+  // Fragment z iTunes / Deezera zaczyna się w środku refrenu; ta fraza leży w nim między 12,4 a 21,5 s.
+  winAudio.src = url + '#t=' + WIN_CLIP.from + ',' + WIN_CLIP.to; winAudio.volume = 1;
+  winAudio.addEventListener('loadedmetadata', () => { if (winAudio.currentTime < WIN_CLIP.from - 0.5) winAudio.currentTime = WIN_CLIP.from; }, { once: true });
   winAudio.play().then(() => $('winMusicBtn').classList.remove('hidden')).catch(() => sfx.win());
 }
+const WIN_CLIP = { from: 12.4, to: 21.5, fade: 1.8 };
+// Wyciszenie pod koniec frazy i stop (na iPhonie głośności nie da się zmieniać — tam po prostu stop).
+winAudio.addEventListener('timeupdate', () => {
+  if (!winAudio.src.startsWith('http')) return;
+  const left = WIN_CLIP.to - winAudio.currentTime;
+  if (left <= 0) { stopWinSong(); winAudio.volume = 1; return; }
+  if (left < WIN_CLIP.fade) winAudio.volume = Math.max(0, left / WIN_CLIP.fade);
+});
+winAudio.addEventListener('pause', () => $('winMusicBtn').classList.add('hidden'));
 winAudio.addEventListener('ended', () => $('winMusicBtn').classList.add('hidden'));
 
 // ---------- minutnik tury ----------
