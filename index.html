@@ -161,7 +161,7 @@
     .status { font-size: 14px; margin-bottom: 10px; }
     .actions { flex-wrap: nowrap; width: 100%; }
     .actions button { flex: 1; padding: 12px 12px; }
-    .card { flex-basis: 104px; min-height: 128px; }
+    .card { flex-basis: 104px; min-height: 112px; padding: 8px; }
     .card .year { font-size: 26px; }
     .decks { grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .deck { padding: 6px; gap: 4px; }
@@ -223,6 +223,31 @@
   @media (hover: none) { .keys { display: none; } }
   #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
   @media (max-width: 640px) { .modes { grid-template-columns: 1fr; } .extra { justify-content: center; } }
+  /* Telefon, ekran gry: płyta obok nazwy gracza, przyciski pod spodem — żeby oś czasu była widoczna bez przewijania */
+  @media (max-width: 640px) {
+    .stage { grid-template-columns: auto 1fr; justify-items: stretch; text-align: left; gap: 8px 14px; align-items: center; }
+    .stage-info { display: contents; }
+    .stage > .disc-btn { grid-row: 1 / span 2; width: 104px; height: 104px; }
+    .stage > .disc-btn .disc .label { width: 40px; height: 40px; font-size: 16px; }
+    .stage .who { grid-column: 2; align-self: end; margin: 0; font-size: 20px; line-height: 1.2; }
+    .stage .status { grid-column: 2; align-self: start; margin: 0; font-size: 13px; line-height: 1.4; }
+    .stage .actions, .stage #tokenBar, .stage #result { grid-column: 1 / -1; }
+    .stage .actions { margin-top: 4px; }
+    .actions button { white-space: nowrap; font-size: 15px; padding: 11px 10px; }
+    .extra .tip, #tlHint { display: none; }
+    .extra { margin-top: 8px; gap: 6px; }
+    .result { margin-top: 8px; padding: 10px 12px; font-size: 14px; }
+    .timeline-head h2 { font-size: 19px; margin-bottom: 6px; }
+    .timeline { padding-top: 4px; }
+    .card .t { font-size: 12px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .card .a { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .who .timer { font-size: 13px; padding: 1px 8px; }
+    .result .extra { flex-wrap: nowrap; justify-content: space-between; margin-top: 6px; }
+    .result .extra .q { width: auto; flex: 1; font-size: 13px; line-height: 1.3; }
+    .result .extra .small-btn { flex: none; padding: 7px 12px; font-size: 13px; }
+    .result .report { margin-top: 4px; }
+    .result .linkbtn { padding: 2px 0; }
+  }
 </style>
 </head>
 <body class="onsetup">
@@ -348,11 +373,11 @@ Bartek</textarea>
           </svg>
           <div class="disc" id="disc"><div class="label" id="discLabel">?</div></div>
         </button>
-        <div>
+        <div class="stage-info">
           <p class="who"><span id="who"></span> <span class="timer hidden" id="timer" role="timer" aria-live="off"></span></p>
           <p class="status" id="status"></p>
           <div class="actions">
-            <button id="confirmBtn" disabled>Zatwierdź miejsce</button>
+            <button id="confirmBtn" disabled>Zatwierdź</button>
             <button class="ghost" id="skipBtn">Pomiń utwór</button>
             <button id="nextBtn" class="hidden">Następny gracz</button>
           </div>
@@ -3415,7 +3440,7 @@ function reveal(how) {
   ({ ok: sfx.ok, steal: sfx.steal, bad: sfx.bad })[cls]();
   if (yearBonus) setTimeout(sfx.token, 450);
   const bonus = tokensOn() && !bought && how !== 'timeout'
-    ? `<div class="extra" id="bonusBox"><span class="q">Czy ${esc(speaker(p))} podał(a) tytuł i wykonawcę przed odsłonięciem?</span>
+    ? `<div class="extra" id="bonusBox"><span class="q">${esc(speaker(p))}: tytuł i wykonawca trafione przed odsłonięciem?</span>
         <button class="small-btn" id="bonusYes" ${p.tokens >= TOKENS_MAX ? 'disabled title="Masz już najwięcej żetonów"' : ''}>Tak, +1 żeton</button></div>` : '';
   $('result').innerHTML = `<div class="result ${cls}">
     <div>${msg}</div>
@@ -3467,7 +3492,7 @@ function render() {
   const won = S.players.some(pl => pl.cards.length >= S.target);
   $('playBtn').disabled = !['listen', 'challenge', 'steal', 'reveal'].includes(S.phase);
   const confirming = S.phase === 'listen' || S.phase === 'steal';
-  $('confirmBtn').textContent = S.phase === 'steal' ? 'Odsłoń' : 'Zatwierdź miejsce';
+  $('confirmBtn').textContent = S.phase === 'steal' ? 'Odsłoń' : 'Zatwierdź';
   $('confirmBtn').disabled = !(S.phase === 'listen' ? S.slot !== null : S.phase === 'steal' && S.stealSlot !== null);
   $('confirmBtn').classList.toggle('hidden', !confirming);
   // Pominięcie: w trybie z żetonami kosztuje żeton — chyba że fragment się nie załadował.
@@ -3483,7 +3508,7 @@ function render() {
   if (tok && S.phase === 'listen') {
     tb = `<label class="guess">Rok? <input id="yearGuess" inputmode="numeric" maxlength="4" placeholder="np. 1987" value="${esc(S.yearGuess || '')}" aria-label="Twój typ roku: trafienie co do roku daje żeton"></label>`
       + `<button class="ghost small-btn" id="buyBtn" ${p.tokens >= BUY_COST ? '' : 'disabled'}>Kup kartę (${BUY_COST} żetony)</button>`
-      + `<span class="q">Wpisz rok przed zatwierdzeniem — trafienie co do roku daje żeton.</span>`;
+      + `<span class="q tip">Wpisz rok przed zatwierdzeniem — trafienie co do roku daje żeton.</span>`;
   } else if (S.phase === 'challenge') {
     tb = `<span class="q">Kto przejmuje?</span>` + stealers().map(({ pl, i }) => `<button class="ghost small-btn" data-steal="${i}">${esc(pl.name)} (● ${pl.tokens})</button>`).join('')
       + `<button class="small-btn" id="noStealBtn">Nikt — odsłoń</button>`;
